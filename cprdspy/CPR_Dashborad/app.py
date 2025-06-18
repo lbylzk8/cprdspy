@@ -1,110 +1,185 @@
-from dash import Dash, html, dcc, callback, Output, Input, State
-import plotly.graph_objects as go
-import CPRSP as CPR
-import inspect
-import dash
-import numpy as np
+"""
+CPR可视化工具主应用
 
-# 初始化 Dash 应用
-app = Dash()
+此模块提供了应用的主要入口点和路由控制。
+"""
 
-# 动态生成输入框，根据函数参数数量
-paran = inspect.signature(CPR.flowers_flower_by_petal_multi).parameters
-inputs = [
-    dcc.Input(id=f"input-{i}", type="text", placeholder=f"参数 {i + 1}")
-    for i in range(len(paran))
-]
+from dash import Dash, html, dcc, Input, Output
+from pages import waves, flowers
 
-# 初始化全局图表对象
-global_fig = go.Figure()
+# 创建Dash应用
+app = Dash(__name__, suppress_callback_exceptions=True)
 
-# 定义应用布局
+
+# 主页布局
+def home_layout():
+    return html.Div(
+        [
+            html.H1(
+                "CPR可视化工具", style={"textAlign": "center", "marginTop": "50px"}
+            ),
+            html.Div(
+                [
+                    dcc.Link(
+                        html.Button(
+                            "波形可视化",
+                            className="nav-button",
+                            style={
+                                "fontSize": "18px",
+                                "padding": "15px 30px",
+                                "margin": "10px",
+                                "backgroundColor": "#4CAF50",
+                                "color": "white",
+                                "border": "none",
+                                "borderRadius": "5px",
+                                "cursor": "pointer",
+                                "transition": "background-color 0.3s",
+                            },
+                        ),
+                        href="/waves",
+                    ),
+                    dcc.Link(
+                        html.Button(
+                            "花朵可视化",
+                            className="nav-button",
+                            style={
+                                "fontSize": "18px",
+                                "padding": "15px 30px",
+                                "margin": "10px",
+                                "backgroundColor": "#2196F3",
+                                "color": "white",
+                                "border": "none",
+                                "borderRadius": "5px",
+                                "cursor": "pointer",
+                                "transition": "background-color 0.3s",
+                            },
+                        ),
+                        href="/flowers",
+                    ),
+                ],
+                style={
+                    "display": "flex",
+                    "justifyContent": "center",
+                    "alignItems": "center",
+                    "marginTop": "50px",
+                },
+            ),
+            html.Div(
+                [
+                    html.H2(
+                        "功能说明", style={"textAlign": "center", "marginTop": "50px"}
+                    ),
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.H3("波形可视化", style={"color": "#4CAF50"}),
+                                    html.P("生成和可视化各种类型的波形，包括："),
+                                    html.Ul(
+                                        [
+                                            html.Li("等差圆形波"),
+                                            html.Li("等比圆形波"),
+                                            html.Li("可调节振幅、频率、周期等参数"),
+                                        ]
+                                    ),
+                                ],
+                                style={
+                                    "flex": "1",
+                                    "margin": "20px",
+                                    "padding": "20px",
+                                    "backgroundColor": "#f5f5f5",
+                                    "borderRadius": "10px",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.H3("花朵可视化", style={"color": "#2196F3"}),
+                                    html.P("创建和可视化各种类型的花朵图案，包括："),
+                                    html.Ul(
+                                        [
+                                            html.Li("基本花瓣和花弧"),
+                                            html.Li("单层和多层花朵"),
+                                            html.Li("可调节花瓣形状、数量、大小等参数"),
+                                        ]
+                                    ),
+                                ],
+                                style={
+                                    "flex": "1",
+                                    "margin": "20px",
+                                    "padding": "20px",
+                                    "backgroundColor": "#f5f5f5",
+                                    "borderRadius": "10px",
+                                },
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "justifyContent": "center",
+                            "maxWidth": "1200px",
+                            "margin": "0 auto",
+                        },
+                    ),
+                ]
+            ),
+        ]
+    )
+
+
+# 应用布局
 app.layout = html.Div(
-    [
-        html.H1(children="CPR Dash App", style={"textAlign": "center"}),
-        html.Div(
-            [
-                # 左侧输入框
-                html.Div(
-                    children=inputs
-                    + [
-                        html.Button(
-                            "绘制图表", id="submit-btn", style={"marginTop": "10px"}
-                        ),
-                        html.Button(
-                            "清除图表",
-                            id="clear-btn",
-                            style={"marginTop": "10px", "marginLeft": "10px"},
-                        ),
-                    ],
-                    style={"flex": "1", "padding": "10px"},
-                ),
-                # 右侧输出图表
-                html.Div(
-                    id="output",
-                    style={"flex": "2", "paddingLeft": "10px", "width": "100%"},
-                ),
-            ],
-            style={"display": "flex"},
-        ),
-    ]
+    [dcc.Location(id="url", refresh=False), html.Div(id="page-content")]
 )
 
 
-# 定义回调函数
-@app.callback(
-    Output("output", "children"),  # 输出到 Div
-    [Input("submit-btn", "n_clicks"), Input("clear-btn", "n_clicks")],
-    [State(f"input-{i}", "value") for i in range(len(paran))],
-)
-def update_graph(submit_clicks, clear_clicks, *input_values):
-    global global_fig
-
-    # 如果点击了清除按钮，重置图表
-    ctx = dash.callback_context
-    if ctx.triggered and ctx.triggered[0]["prop_id"].startswith("clear-btn"):
-        global_fig = go.Figure()  # 重置图表
-        return "图表已清除，请重新绘制。"
-
-    # 如果点击了绘制按钮
-    if submit_clicks is None:
-        return "请点击“绘制图表”按钮以生成图表。"
-
-    # 验证输入是否为空
-    if any(value is None or value.strip() == "" for value in input_values):
-        return "请确保所有输入框都已填写。"
-
-    try:
-        # 转换输入值为适当的类型（支持 numpy 表达式）
-        converted_values = []
-        for value in input_values:
-            try:
-                # 使用 eval 并传递 numpy 模块上下文
-                converted_values.append(eval(value, {"__builtins__": None}, {"np": np}))
-            except Exception:
-                # 如果转换失败，保留原始字符串
-                converted_values.append(value)
-
-        # 调用函数生成新的图表数据
-        new_fig = CPR.flowers_flower_by_petal_multi(*converted_values)
-
-        # 将新数据添加到全局图表中
-        for trace in new_fig.data:
-            global_fig.add_trace(trace)
-
-        # 更新布局
-        global_fig.update_layout(
-            xaxis=dict(dtick=1), yaxis=dict(dtick=1), width=800, height=800
-        )
-
-        return dcc.Graph(
-            figure=global_fig, style={"height": "100%", "width": "100%"}
-        )  # 返回图表
-    except Exception as e:
-        # 捕获错误并返回提示
-        return f"生成图表时出错：{str(e)}"
+# 页面路由回调
+@app.callback(Output("page-content", "children"), Input("url", "pathname"))
+def display_page(pathname):
+    if pathname == "/waves":
+        return waves.layout
+    elif pathname == "/flowers":
+        return flowers.layout
+    else:
+        return home_layout()
 
 
-# 运行应用
+# 添加CSS样式
+app.index_string = """
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>CPR可视化工具</title>
+        {%favicon%}
+        {%css%}
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #ffffff;
+            }
+            .nav-button:hover {
+                opacity: 0.9;
+                transform: scale(1.05);
+            }
+            ul {
+                padding-left: 20px;
+            }
+            li {
+                margin: 10px 0;
+            }
+        </style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+"""
+
 if __name__ == "__main__":
     app.run(debug=True)
