@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+images/
+.history/
+*.egg-info
+
+# Virtual environments
+.venv/
+
+# Large Jupyter notebooks (remove specific large ones)
+# examples/example.ipynb
+# examples/test.ipynb
+# cprdspy/CPR_3D/test.ipynb
+# cprdspy/CPR_matplotlib/Flowers/flower_test.ipynb
+# cprdspy/CPR_plotly/Flowers/test.ipynb
+
+# Ignore all .history files completely
+.history/
