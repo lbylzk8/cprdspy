@@ -1,9 +1,20 @@
 [project]
 name = "cprdspy"
-version = "0.2.3"
-description = "Add your description here"
+version = "0.2.4"
+description = "CPR可视化工具包 - 基于Plotly和Matplotlib的圈点圆可视化Python工具包"
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    {name = "lbylzk8", email = "lbylzk8@outlook.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "dash>=3.2.0",
     "ipykernel>=7.1.0",
@@ -11,3 +22,8 @@ dependencies = [
     "numpy>=2.3.4",
     "plotly>=6.3.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/lbylzk8/cprdspy"
+Repository = "https://github.com/lbylzk8/cprdspy"
+Issues = "https://github.com/lbylzk8/cprdspy/issues"
