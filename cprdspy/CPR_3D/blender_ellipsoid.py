@@ -1,15 +1,3 @@
-bl_info = {
-    "name": "CPR Ellipsoid Tools",
-    "author": "CPR Team",
-    "version": (1, 0, 0),
-    "blender": (3, 0, 0),
-    "location": "View3D > Sidebar > CPR",
-    "description": "Create parametric ellipsoids with advanced transformation options",
-    "warning": "",
-    "doc_url": "",
-    "category": "Add Mesh",
-}
-
 # Blender 脚本：基于参数化生成椭球并支持仿射变换
 # 使用方法：在 Blender 的脚本编辑器中打开并运行（Blender 自带 Python 环境，不依赖 numpy）
 # 功能：创建椭球（可部分），应用仿射矩阵 / 欧拉角旋转 / 平移，设置颜色材质
@@ -33,54 +21,14 @@ _UV_GRID_CACHE = {}
 
 def _get_uv_grid(u_res, v_res, u_range, v_range, cache_uv=True):
     """返回 (u_grid, v_grid)。在有 numpy 时返回 numpy arrays，否则返回嵌套列表。"""
-
-    def _coerce_int(x, name="value"):
-        # Accept ints/floats directly
-        if isinstance(x, (int,)):
-            return int(x)
-        if isinstance(x, float):
-            return int(x)
-        # Numpy integer types
-        try:
-            import numbers
-
-            if isinstance(x, numbers.Integral):
-                return int(x)
-        except Exception:
-            pass
-        # Handle Blender _PropertyDeferred objects
-        if str(type(x).__name__) == "_PropertyDeferred":
-            try:
-                # Extract default value from the property descriptor
-                if hasattr(x, '__dict__') and 'default' in x.__dict__:
-                    return int(x.__dict__['default'])
-                # Try to access the default attribute
-                if hasattr(x, 'default'):
-                    return int(x.default)
-            except Exception:
-                pass
-        # Blender deferred property descriptors often expose .default
-        if hasattr(x, "default"):
-            try:
-                return int(x.default)
-            except Exception:
-                pass
-        # Some objects may have .value
-        if hasattr(x, "value"):
-            try:
-                return int(x.value)
-            except Exception:
-                pass
-        # Try converting from string
-        try:
-            return int(float(str(x)))
-        except Exception:
-            raise TypeError(
-                f"{name} must be an integer or int-like, got {type(x)}: {x}"
-            )
-
-    u_res = _coerce_int(u_res, "u_res")
-    v_res = _coerce_int(v_res, "v_res")
+    try:
+        u_res = int(u_res)
+    except Exception:
+        u_res = int(float(u_res))
+    try:
+        v_res = int(v_res)
+    except Exception:
+        v_res = int(float(v_res))
     if u_res < 2 or v_res < 2:
         raise ValueError("u_res and v_res must be >= 2")
 
@@ -108,7 +56,7 @@ def create_parametric_ellipsoid(
     b=1.0,
     c=1.0,
     u_res=32,
-    v_res=16,
+    v_res=32,
     u_range=(0.0, 2 * math.pi),
     v_range=(0.0, math.pi),
     name="Ellipsoid",
@@ -371,79 +319,402 @@ class CPR_OT_add_ellipsoid(bpy.types.Operator):
         default=1.0,
         min=0.01,
         max=100.0,
-        description="Ellipsoid radius in X direction"
+        description="Ellipsoid radius in X direction",
     )
     b: bpy.props.FloatProperty(
-        name="Y Radius", 
+        name="Y Radius",
         default=1.0,
         min=0.01,
         max=100.0,
-        description="Ellipsoid radius in Y direction"
+        description="Ellipsoid radius in Y direction",
     )
     c: bpy.props.FloatProperty(
         name="Z Radius",
         default=1.0,
         min=0.01,
         max=100.0,
-        description="Ellipsoid radius in Z direction"
+        description="Ellipsoid radius in Z direction",
     )
     u_res: bpy.props.IntProperty(
         name="U Resolution",
         default=32,
         min=3,
         max=256,
-        description="Resolution in U direction (longitude)"
+        description="Resolution in U direction (longitude)",
     )
     v_res: bpy.props.IntProperty(
         name="V Resolution",
         default=16,
         min=2,
         max=256,
-        description="Resolution in V direction (latitude)"
+        description="Resolution in V direction (latitude)",
+    )
+    u_start: bpy.props.FloatProperty(
+        name="U Start",
+        default=0.0,
+        min=0.0,
+        max=2 * math.pi,
+        description="Starting angle in radians for U direction",
+    )
+    u_end: bpy.props.FloatProperty(
+        name="U End",
+        default=2 * math.pi,
+        min=0.0,
+        max=2 * math.pi,
+        description="Ending angle in radians for U direction",
+    )
+    v_start: bpy.props.FloatProperty(
+        name="V Start",
+        default=0.0,
+        min=0.0,
+        max=math.pi,
+        description="Starting angle in radians for V direction",
+    )
+    v_end: bpy.props.FloatProperty(
+        name="V End",
+        default=math.pi,
+        min=0.0,
+        max=math.pi,
+        description="Ending angle in radians for V direction",
     )
     keep_y_positive: bpy.props.BoolProperty(
         name="Keep Y Positive Only",
         default=False,
-        description="Only keep the part where Y >= 0"
+        description="Only keep the part where Y >= 0",
     )
     use_geometry_nodes: bpy.props.BoolProperty(
         name="Use Geometry Nodes",
         default=False,
-        description="Create a geometry nodes instancer"
+        description="Create a geometry nodes instancer",
+    )
+    color_r: bpy.props.FloatProperty(
+        name="Red",
+        default=1.0,
+        min=0.0,
+        max=1.0,
+        description="Red color component",
+    )
+    color_g: bpy.props.FloatProperty(
+        name="Green",
+        default=0.3,
+        min=0.0,
+        max=1.0,
+        description="Green color component",
+    )
+    color_b: bpy.props.FloatProperty(
+        name="Blue",
+        default=0.3,
+        min=0.0,
+        max=1.0,
+        description="Blue color component",
+    )
+    color_a: bpy.props.FloatProperty(
+        name="Alpha",
+        default=1.0,
+        min=0.0,
+        max=1.0,
+        description="Alpha (transparency) component",
     )
 
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
+    # Rotation parameters (in degrees)
+    rotation_x: bpy.props.FloatProperty(
+        name="Rotation X",
+        default=0.0,
+        min=-360.0,
+        max=360.0,
+        description="Rotation around X axis (degrees)",
+    )
+    rotation_y: bpy.props.FloatProperty(
+        name="Rotation Y",
+        default=0.0,
+        min=-360.0,
+        max=360.0,
+        description="Rotation around Y axis (degrees)",
+    )
+    rotation_z: bpy.props.FloatProperty(
+        name="Rotation Z",
+        default=0.0,
+        min=-360.0,
+        max=360.0,
+        description="Rotation around Z axis (degrees)",
+    )
+
+    # Location parameters
+    location_x: bpy.props.FloatProperty(
+        name="Location X",
+        default=0.0,
+        description="X coordinate of the ellipsoid center",
+    )
+    location_y: bpy.props.FloatProperty(
+        name="Location Y",
+        default=0.0,
+        description="Y coordinate of the ellipsoid center",
+    )
+    location_z: bpy.props.FloatProperty(
+        name="Location Z",
+        default=0.0,
+        description="Z coordinate of the ellipsoid center",
+    )
+
+    # Affine transformation matrix toggle
+    use_affine_matrix: bpy.props.BoolProperty(
+        name="Use Affine Matrix",
+        default=False,
+        description="Use custom affine transformation matrix",
+    )
+
+    # Affine matrix elements (4x4 matrix flattened)
+    # Row 1
+    affine_00: bpy.props.FloatProperty(default=1.0)
+    affine_01: bpy.props.FloatProperty(default=0.0)
+    affine_02: bpy.props.FloatProperty(default=0.0)
+    affine_03: bpy.props.FloatProperty(default=0.0)
+    # Row 2
+    affine_10: bpy.props.FloatProperty(default=0.0)
+    affine_11: bpy.props.FloatProperty(default=1.0)
+    affine_12: bpy.props.FloatProperty(default=0.0)
+    affine_13: bpy.props.FloatProperty(default=0.0)
+    # Row 3
+    affine_20: bpy.props.FloatProperty(default=0.0)
+    affine_21: bpy.props.FloatProperty(default=0.0)
+    affine_22: bpy.props.FloatProperty(default=1.0)
+    affine_23: bpy.props.FloatProperty(default=0.0)
+    # Row 4
+    affine_30: bpy.props.FloatProperty(default=0.0)
+    affine_31: bpy.props.FloatProperty(default=0.0)
+    affine_32: bpy.props.FloatProperty(default=0.0)
+    affine_33: bpy.props.FloatProperty(default=1.0)
 
     def execute(self, context):
-        try:
-            obj = create_parametric_ellipsoid(
-                a=self.a,
-                b=self.b,
-                c=self.c,
-                u_res=self.u_res,
-                v_res=self.v_res,
-                keep_y_positive=self.keep_y_positive,
-            )
-            if self.use_geometry_nodes and obj is not None:
-                create_geometry_nodes_instancer(obj)
-            self.report({"INFO"}, f"Created ellipsoid with dimensions ({self.a:.2f}, {self.b:.2f}, {self.c:.2f})")
-            return {"FINISHED"}
-        except Exception as e:
-            self.report({"ERROR"}, f"Failed to create ellipsoid: {str(e)}")
-            return {"CANCELLED"}
+        # Prepare u_range and v_range tuples
+        u_range = (float(self.u_start), float(self.u_end))
+        v_range = (float(self.v_start), float(self.v_end))
+
+        # Prepare color tuple
+        color = (
+            float(self.color_r),
+            float(self.color_g),
+            float(self.color_b),
+            float(self.color_a),
+        )
+
+        # Prepare location tuple
+        location = (
+            float(self.location_x),
+            float(self.location_y),
+            float(self.location_z),
+        )
+
+        # Prepare rotation tuple (will be converted to radians inside the function)
+        rotation_euler_deg = (
+            float(self.rotation_x),
+            float(self.rotation_y),
+            float(self.rotation_z),
+        )
+
+        # Prepare affine matrix if enabled
+        affine_matrix = None
+        if self.use_affine_matrix:
+            affine_matrix = [
+                [
+                    float(self.affine_00),
+                    float(self.affine_01),
+                    float(self.affine_02),
+                    float(self.affine_03),
+                ],
+                [
+                    float(self.affine_10),
+                    float(self.affine_11),
+                    float(self.affine_12),
+                    float(self.affine_13),
+                ],
+                [
+                    float(self.affine_20),
+                    float(self.affine_21),
+                    float(self.affine_22),
+                    float(self.affine_23),
+                ],
+                [
+                    float(self.affine_30),
+                    float(self.affine_31),
+                    float(self.affine_32),
+                    float(self.affine_33),
+                ],
+            ]
+
+        obj = create_parametric_ellipsoid(
+            a=float(self.a),
+            b=float(self.b),
+            c=float(self.c),
+            u_res=int(self.u_res),
+            v_res=int(self.v_res),
+            u_range=u_range,
+            v_range=v_range,
+            color=color,
+            affine_matrix=affine_matrix,
+            rotation_euler_deg=rotation_euler_deg,
+            location=location,
+            keep_y_positive=bool(self.keep_y_positive),
+        )
+        if self.use_geometry_nodes and obj is not None:
+            create_geometry_nodes_instancer(obj)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        # Always show the property dialog
+        return context.window_manager.invoke_props_dialog(self, width=400)
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "a")
-        layout.prop(self, "b")
-        layout.prop(self, "c")
+
+        # Basic parameters
+        box = layout.box()
+        box.label(text="Basic Parameters:")
+        row = box.row()
+        row.prop(self, "a")
+        row.prop(self, "b")
+        row.prop(self, "c")
+
+        # Resolution parameters
+        box = layout.box()
+        box.label(text="Resolution:")
+        row = box.row()
+        row.prop(self, "u_res")
+        row.prop(self, "v_res")
+
+        # Range parameters
+        box = layout.box()
+        box.label(text="Parameter Ranges (Radians):")
+        row = box.row()
+        col = row.column()
+        col.prop(self, "u_start")
+        col.prop(self, "u_end")
+        col = row.column()
+        col.prop(self, "v_start")
+        col.prop(self, "v_end")
+
+        # Color parameters
+        box = layout.box()
+        box.label(text="Color:")
+        row = box.row()
+        row.prop(self, "color_r", text="R")
+        row.prop(self, "color_g", text="G")
+        row.prop(self, "color_b", text="B")
+        row.prop(self, "color_a", text="A")
+
+        # Transform parameters
+        box = layout.box()
+        box.label(text="Transform:")
+        # Location
+        row = box.row()
+        row.label(text="Location:")
+        row.prop(self, "location_x", text="X")
+        row.prop(self, "location_y", text="Y")
+        row.prop(self, "location_z", text="Z")
+
+        # Rotation
+        row = box.row()
+        row.label(text="Rotation:")
+        row.prop(self, "rotation_x", text="X")
+        row.prop(self, "rotation_y", text="Y")
+        row.prop(self, "rotation_z", text="Z")
+
+        # Affine matrix toggle
+        box.prop(self, "use_affine_matrix")
+
+        # Affine matrix elements (only shown when enabled)
+        if self.use_affine_matrix:
+            box.label(text="Affine Matrix:")
+            # Row 1
+            row = box.row()
+            row.prop(self, "affine_00", text="")
+            row.prop(self, "affine_01", text="")
+            row.prop(self, "affine_02", text="")
+            row.prop(self, "affine_03", text="")
+            # Row 2
+            row = box.row()
+            row.prop(self, "affine_10", text="")
+            row.prop(self, "affine_11", text="")
+            row.prop(self, "affine_12", text="")
+            row.prop(self, "affine_13", text="")
+            # Row 3
+            row = box.row()
+            row.prop(self, "affine_20", text="")
+            row.prop(self, "affine_21", text="")
+            row.prop(self, "affine_22", text="")
+            row.prop(self, "affine_23", text="")
+            # Row 4
+            row = box.row()
+            row.prop(self, "affine_30", text="")
+            row.prop(self, "affine_31", text="")
+            row.prop(self, "affine_32", text="")
+            row.prop(self, "affine_33", text="")
+
+        # Other options
+        box = layout.box()
+        box.label(text="Options:")
+        box.prop(self, "keep_y_positive")
+        box.prop(self, "use_geometry_nodes")
+
+
+class CPR_OT_create_gnodes_from_active(bpy.types.Operator):
+    bl_idname = "cpr.create_gnodes_from_active"
+    bl_label = "Create GN Instancer from Active"
+    bl_description = "Create a geometry nodes instancer from the active object"
+    bl_options = {"REGISTER", "UNDO"}
+
+    rows: bpy.props.IntProperty(
+        name="Rows",
+        default=5,
+        min=1,
+        max=100,
+        description="Number of rows in the grid",
+    )
+    cols: bpy.props.IntProperty(
+        name="Columns",
+        default=5,
+        min=1,
+        max=100,
+        description="Number of columns in the grid",
+    )
+    spacing_x: bpy.props.FloatProperty(
+        name="Spacing X",
+        default=2.0,
+        min=0.01,
+        max=100.0,
+        description="Spacing between rows",
+    )
+    spacing_y: bpy.props.FloatProperty(
+        name="Spacing Y",
+        default=2.0,
+        min=0.01,
+        max=100.0,
+        description="Spacing between columns",
+    )
+
+    def execute(self, context):
+        active_obj = context.active_object
+        if active_obj is None:
+            self.report({"ERROR"}, "No active object")
+            return {"CANCELLED"}
+        create_geometry_nodes_instancer(
+            active_obj,
+            rows=int(self.rows),
+            cols=int(self.cols),
+            spacing=(float(self.spacing_x), float(self.spacing_y)),
+        )
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=300)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "rows")
+        layout.prop(self, "cols")
         layout.separator()
-        layout.prop(self, "u_res")
-        layout.prop(self, "v_res")
-        layout.separator()
-        layout.prop(self, "keep_y_positive")
-        layout.prop(self, "use_geometry_nodes")
+        layout.prop(self, "spacing_x")
+        layout.prop(self, "spacing_y")
 
 
 class CPR_PT_ellipsoid_panel(bpy.types.Panel):
@@ -452,128 +723,44 @@ class CPR_PT_ellipsoid_panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "CPR"
-    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
-        
-        # Main ellipsoid creation section
-        box = layout.box()
-        box.label(text="Parametric Ellipsoid", icon="MESH_SPHERE")
-        col = box.column(align=True)
-        
-        # Quick add buttons with presets
+        col = layout.column()
+        col.label(text="Add Parametric Ellipsoid")
+
+        # Quick buttons for common shapes
         row = col.row(align=True)
-        row.operator("cpr.add_ellipsoid", text="Sphere").a = 1.0
-        row.operator("cpr.add_ellipsoid", text="Ellipsoid").a = 2.0
-        
-        # Advanced settings
+        op = row.operator("cpr.add_ellipsoid", text="Sphere")
+        op.a = 1.0
+        op.b = 1.0
+        op.c = 1.0
+
+        op = row.operator("cpr.add_ellipsoid", text="Ellipsoid")
+        op.a = 2.0
+        op.b = 1.0
+        op.c = 1.0
+
+        # Button for full parameter customization
+        col.operator("cpr.add_ellipsoid", text="Custom Ellipsoid...")
+
         col.separator()
-        col.operator("cpr.add_ellipsoid", text="Custom Ellipsoid")
-        
-        # Utilities section
-        layout.separator()
-        box = layout.box()
-        box.label(text="Utilities", icon="TOOL_SETTINGS")
-        col = box.column(align=True)
+        col.label(text="Utilities")
         col.operator(
             "cpr.create_gnodes_from_active", text="Create GN Instancer from Active"
         )
-        
-        # Info section
-        layout.separator()
-        box = layout.box()
-        box.label(text="Information", icon="INFO")
-        col = box.column(align=True)
-        col.scale_y = 0.8
-        col.label(text="• Use Custom Ellipsoid for full parameters")
-        col.label(text="• Geometry Nodes creates instancer grid")
-        col.label(text="• Keep Y Positive for half-sphere")
-
-
-class CPR_OT_create_gnodes_from_active(bpy.types.Operator):
-    bl_idname = "cpr.create_gnodes_from_active"
-    bl_label = "Create Geometry Nodes Instancer from Active"
-    bl_description = "Create a geometry nodes instancer from the active object"
-    bl_options = {"REGISTER", "UNDO"}
-
-    rows: bpy.props.IntProperty(
-        name="Rows",
-        default=5,
-        min=1,
-        max=50,
-        description="Number of rows in the instancer grid"
-    )
-    cols: bpy.props.IntProperty(
-        name="Columns",
-        default=5,
-        min=1,
-        max=50,
-        description="Number of columns in the instancer grid"
-    )
-    spacing_x: bpy.props.FloatProperty(
-        name="X Spacing",
-        default=2.0,
-        min=0.1,
-        max=50.0,
-        description="Spacing between instances in X direction"
-    )
-    spacing_y: bpy.props.FloatProperty(
-        name="Y Spacing",
-        default=2.0,
-        min=0.1,
-        max=50.0,
-        description="Spacing between instances in Y direction"
-    )
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
-
-    def execute(self, context):
-        base = context.active_object
-        if base is None:
-            self.report({"ERROR"}, "No active object to instance. Please select an object first.")
-            return {"CANCELLED"}
-        
-        try:
-            instancer = create_geometry_nodes_instancer(
-                base,
-                rows=self.rows,
-                cols=self.cols,
-                spacing=(self.spacing_x, self.spacing_y),
-            )
-            self.report({"INFO"}, f"Created geometry nodes instancer with {self.rows}x{self.cols} grid")
-            return {"FINISHED"}
-        except Exception as e:
-            self.report({"ERROR"}, f"Failed to create geometry nodes instancer: {str(e)}")
-            return {"CANCELLED"}
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, "rows")
-        layout.prop(self, "cols")
-        layout.prop(self, "spacing_x")
-        layout.prop(self, "spacing_y")
 
 
 def register():
-    try:
-        bpy.utils.register_class(CPR_OT_add_ellipsoid)
-        bpy.utils.register_class(CPR_PT_ellipsoid_panel)
-        bpy.utils.register_class(CPR_OT_create_gnodes_from_active)
-        print("CPR Ellipsoid addon registered successfully")
-    except Exception as e:
-        print(f"Failed to register CPR Ellipsoid addon: {e}")
+    bpy.utils.register_class(CPR_OT_add_ellipsoid)
+    bpy.utils.register_class(CPR_PT_ellipsoid_panel)
+    bpy.utils.register_class(CPR_OT_create_gnodes_from_active)
 
 
 def unregister():
-    try:
-        bpy.utils.unregister_class(CPR_OT_create_gnodes_from_active)
-        bpy.utils.unregister_class(CPR_PT_ellipsoid_panel)
-        bpy.utils.unregister_class(CPR_OT_add_ellipsoid)
-        print("CPR Ellipsoid addon unregistered successfully")
-    except Exception as e:
-        print(f"Failed to unregister CPR Ellipsoid addon: {e}")
+    bpy.utils.unregister_class(CPR_OT_add_ellipsoid)
+    bpy.utils.unregister_class(CPR_PT_ellipsoid_panel)
+    bpy.utils.unregister_class(CPR_OT_create_gnodes_from_active)
 
 
 # 示例：如果直接在 Blender 中运行该脚本
@@ -587,47 +774,107 @@ if __name__ == "__main__":
     # 清理场景（开发时便于重复运行）
     clear_scene()
 
-    # 示例1：默认椭球
-    create_parametric_ellipsoid(
-        a=2.5,
-        b=1.2,
-        c=1.0,
-        u_res=64,
-        v_res=32,
-        name="Ellipsoid_default",
-        color=(0.2, 0.6, 1.0, 1.0),
-    )
+    # # 示例1：默认椭球
+    # create_parametric_ellipsoid(
+    #     a=2.5,
+    #     b=1.2,
+    #     c=1.0,
+    #     u_res=64,
+    #     v_res=32,
+    #     name="Ellipsoid_default",
+    #     color=(0.2, 0.6, 1.0, 1.0),
+    # )
 
-    # 示例2：仿射镜像 + 平移
+    # # 示例2：仿射镜像 + 平移
+    # A = Matrix(
+    #     (
+    #         (-1.0, 0.0, 0.0, 3.0),
+    #         (0.0, 1.0, 0.0, 0.0),
+    #         (0.0, 0.0, -1.0, 0.0),
+    #         (0.0, 0.0, 0.0, 1.0),
+    #     )
+    # )
+    # create_parametric_ellipsoid(
+    #     a=1.0,
+    #     b=0.8,
+    #     c=1.2,
+    #     u_res=48,
+    #     v_res=24,
+    #     name="Ellipsoid_affine",
+    #     color=(1.0, 0.4, 0.6, 1.0),
+    #     affine_matrix=A,
+    # )
+
+    # # 示例3：只保留 Y >= 0 的部分曲面
+    # create_parametric_ellipsoid(
+    #     a=2.0,
+    #     b=1.0,
+    #     c=1.0,
+    #     u_res=48,
+    #     v_res=24,
+    #     name="Ellipsoid_halfY",
+    #     color=(1.0, 0.8, 0.2, 1.0),
+    #     keep_y_positive=True,
+    # )
+    theta = np.pi / 4
     A = Matrix(
         (
-            (-1.0, 0.0, 0.0, 3.0),
+            (1.0, 0.0, 0.0, 3.0),
             (0.0, 1.0, 0.0, 0.0),
-            (0.0, 0.0, -1.0, 0.0),
+            (0.0, 0.0, 1.0, -np.cos(theta)),
             (0.0, 0.0, 0.0, 1.0),
         )
     )
     create_parametric_ellipsoid(
-        a=1.0,
-        b=0.8,
-        c=1.2,
-        u_res=48,
-        v_res=24,
-        name="Ellipsoid_affine",
-        color=(1.0, 0.4, 0.6, 1.0),
-        affine_matrix=A,
-    )
-
-    # 示例3：只保留 Y >= 0 的部分曲面
-    create_parametric_ellipsoid(
-        a=2.0,
+        a=4.0,
         b=1.0,
         c=1.0,
-        u_res=48,
-        v_res=24,
-        name="Ellipsoid_halfY",
-        color=(1.0, 0.8, 0.2, 1.0),
-        keep_y_positive=True,
+        u_res=100,
+        v_res=100,
+        u_range=(0, np.pi),
+        v_range=(0, theta),
+        name="Ellipsoid_Suface1",
+        color=(1.0, 0.4, 1.0, 0.7),
+        affine_matrix=A,
     )
-
+    B = Matrix(
+        (
+            (-1.0, 0.0, 0.0, 3.0),
+            (0.0, 1.0, 0.0, 0.0),
+            (0.0, 0.0, -1.0, np.cos(theta)),
+            (0.0, 0.0, 0.0, 1.0),
+        )
+    )
+    create_parametric_ellipsoid(
+        a=4.0,
+        b=1.0,
+        c=1.0,
+        u_res=100,
+        v_res=100,
+        u_range=(0, np.pi),
+        v_range=(0, theta),
+        name="Ellipsoid_Suface2",
+        color=(0, 1.0, 0, 0.7),
+        affine_matrix=B,
+    )
+    # C = Matrix(
+    #     (
+    #         (1.0, 0.0, 0.0, 0.0),
+    #         (0.0, 1.0, 0.0, 0.0),
+    #         (0.0, 0.0, 1.0, -np.cos(np.pi / 4)),
+    #         (0.0, 0.0, 0.0, 1.0),
+    #     )
+    # )
+    # create_parametric_ellipsoid(
+    #     a=4.0,
+    #     b=1.0,
+    #     c=1.0,
+    #     u_res=100,
+    #     v_res=100,
+    #     u_range=(0, np.pi),
+    #     v_range=(0, np.pi / 2 / 2),
+    #     name="Ellipsoid_Suface3",
+    #     color=(0, 0, 1.0, 0.7),
+    #     affine_matrix=C,
+    # )
     print("Blender: 已创建示例椭球对象，检查 3D 视图。")

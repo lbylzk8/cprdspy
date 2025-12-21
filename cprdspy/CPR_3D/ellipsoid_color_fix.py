@@ -234,48 +234,39 @@ def clear_figure():
 def test_colors():
     """测试不同颜色的椭球"""
     fig = start_figure("颜色测试")
-    matrix1 = np.eye(4)
-    matrix1[2, 3] = -2
-    matrix2 = np.eye(4)
-    matrix2[0, 0] = -1.0
-    matrix2[2, 2] = -1.0
-    matrix2[2, 3] = -0.6
+    
     # 测试红色
     ellipsoid_fixed(
-        a=4,
-        b=1,
-        c=1,
-        center=(0, 0, 0),
-        u_range=(0, np.pi),
-        v_range=(0, np.pi / 2 / 2),
-        color="rgba(255,0,0,0.7)",
-        affine_matrix=matrix1,
-        name="红色",
+        a=2, b=2, c=2, 
+        center=(0, 0, 0), 
+        color="rgba(255,0,0,0.7)", 
+        name="红色"
     )
-
+    
     # 测试绿色
     ellipsoid_fixed(
-        a=4,
-        b=1,
-        c=1,
-        center=(0, 0, 0),
-        u_range=(0, np.pi),
-        v_range=(0, np.pi / 2 / 2),
-        affine_matrix=matrix2,
-        color="rgba(0,255,0,0.7)",
-        name="绿色",
+        a=2, b=2, c=2, 
+        center=(5, 0, 0), 
+        color="rgba(0,255,0,0.7)", 
+        name="绿色"
     )
-
+    
     # 测试蓝色
-    # ellipsoid_fixed(
-    #     a=2, b=2, c=2, center=(10, 0, 0), color="rgba(0,0,255,0.7)", name="蓝色"
-    # )
-
-    # # 测试黄色
-    # ellipsoid_fixed(
-    #     a=2, b=2, c=2, center=(15, 0, 0), color="rgba(255,255,0,0.7)", name="黄色"
-    # )
-
+    ellipsoid_fixed(
+        a=2, b=2, c=2, 
+        center=(10, 0, 0), 
+        color="rgba(0,0,255,0.7)", 
+        name="蓝色"
+    )
+    
+    # 测试黄色
+    ellipsoid_fixed(
+        a=2, b=2, c=2, 
+        center=(15, 0, 0), 
+        color="rgba(255,255,0,0.7)", 
+        name="黄色"
+    )
+    
     show_figure(fig)
 
 
@@ -297,7 +288,7 @@ def test_red_ellipsoid():
 
 if __name__ == "__main__":
     # 运行测试
-    # print("测试颜色修复...")
+    print("测试颜色修复...")
     test_colors()
-    # print("红色椭球测试...")
-    # test_red_ellipsoid()
+    print("红色椭球测试...")
+    test_red_ellipsoid()
