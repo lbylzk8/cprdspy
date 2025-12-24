@@ -7,7 +7,7 @@ wheels/
 images/
 .history/
 *.egg-info
-
+examples/images/
 # Virtual environments
 .venv/
 

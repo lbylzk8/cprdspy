@@ -816,19 +816,24 @@ if __name__ == "__main__":
     #     color=(1.0, 0.8, 0.2, 1.0),
     #     keep_y_positive=True,
     # )
-    theta = np.pi / 4
+    a = 1.0
+    b = 1 / 3
+    c = 2
+    n = 4
+    theta = np.pi / 2 - np.pi / n
+    z_dist = c * np.cos(theta)
     A = Matrix(
         (
-            (1.0, 0.0, 0.0, 3.0),
+            (1.0, 0.0, 0.0, 0.0),
             (0.0, 1.0, 0.0, 0.0),
-            (0.0, 0.0, 1.0, -np.cos(theta)),
+            (0.0, 0.0, 1.0, -z_dist),
             (0.0, 0.0, 0.0, 1.0),
         )
     )
     create_parametric_ellipsoid(
-        a=4.0,
-        b=1.0,
-        c=1.0,
+        a,
+        b,
+        c,
         u_res=100,
         v_res=100,
         u_range=(0, np.pi),
@@ -839,16 +844,16 @@ if __name__ == "__main__":
     )
     B = Matrix(
         (
-            (-1.0, 0.0, 0.0, 3.0),
+            (-1.0, 0.0, 0.0, 0.0),
             (0.0, 1.0, 0.0, 0.0),
-            (0.0, 0.0, -1.0, np.cos(theta)),
+            (0.0, 0.0, -1.0, z_dist),
             (0.0, 0.0, 0.0, 1.0),
         )
     )
     create_parametric_ellipsoid(
-        a=4.0,
-        b=1.0,
-        c=1.0,
+        a,
+        b,
+        c,
         u_res=100,
         v_res=100,
         u_range=(0, np.pi),
