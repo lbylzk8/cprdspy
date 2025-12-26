@@ -12,7 +12,7 @@ try:
 except Exception:
     np = None
     _HAS_NUMPY = False
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Vector, Euler, Quaternion
 import bmesh
 
 # 缓存 u/v 网格以复用，键为 (u_res,v_res,u0,u1,v0,v1)
@@ -51,6 +51,47 @@ def _get_uv_grid(u_res, v_res, u_range, v_range, cache_uv=True):
     return u_grid, v_grid
 
 
+def _quaternion_to_rotation_matrix(q: list) -> Matrix:
+    """
+    将四元数转换为Blender的3x3旋转矩阵
+    参数: q = [w, x, y, z] - 四元数 (w是标量部分, [x, y, z]是向量部分)
+    返回: 3x3 rotation Matrix
+    """
+    w, x, y, z = q
+    # 标准化四元数
+    norm = math.sqrt(w * w + x * x + y * y + z * z)
+    if norm == 0:
+        return Matrix.Identity(3)
+    w, x, y, z = w / norm, x / norm, y / norm, z / norm
+
+    # 计算旋转矩阵
+    m = Matrix()
+    m[0][0] = 1 - 2 * (y * y + z * z)
+    m[0][1] = 2 * (x * y - w * z)
+    m[0][2] = 2 * (x * z + w * y)
+    m[1][0] = 2 * (x * y + w * z)
+    m[1][1] = 1 - 2 * (x * x + z * z)
+    m[1][2] = 2 * (y * z - w * x)
+    m[2][0] = 2 * (x * z - w * y)
+    m[2][1] = 2 * (y * z + w * x)
+    m[2][2] = 1 - 2 * (x * x + y * y)
+    return m
+
+
+def _axis_angle_to_quaternion(axis: list, angle: float) -> list:
+    """
+    将轴角表示转换为四元数
+    参数: axis - 旋转轴向量
+          angle - 旋转角度（弧度）
+    返回: [w, x, y, z] 四元数
+    """
+    axis = Vector(axis).normalized()
+    half_angle = angle / 2
+    sin_half = math.sin(half_angle)
+    cos_half = math.cos(half_angle)
+    return [cos_half, axis[0] * sin_half, axis[1] * sin_half, axis[2] * sin_half]
+
+
 def create_parametric_ellipsoid(
     a=1.0,
     b=1.0,
@@ -63,6 +104,8 @@ def create_parametric_ellipsoid(
     color=(1.0, 0.3, 0.3, 1.0),
     affine_matrix=None,  # 4x4 nested list or mathutils.Matrix
     rotation_euler_deg=None,  # tuple (rx, ry, rz) degrees, used if affine_matrix is None
+    quaternion=None,  # list [w, x, y, z], used if affine_matrix and rotation_euler_deg are None
+    axis_angle=None,  # tuple (axis, angle_deg), used if higher priority params are None
     location=(0.0, 0.0, 0.0),
     keep_y_positive=False,  # 如果 True，仅保留变换后 y >= 0 的顶点/面
     generate_uv: bool = False,  # 是否生成 UV 层
@@ -80,8 +123,10 @@ def create_parametric_ellipsoid(
       u_res,v_res: 网格分辨率（u 列数, v 行数）
       u_range,v_range: 参数范围
       color: RGBA 颜色（0..1）
-      affine_matrix: 若提供，会作为 4x4 齐次矩阵直接应用到顶点上（优先）
+      affine_matrix: 若提供，会作为 4x4 齐次矩阵直接应用到顶点上（优先级最高）
       rotation_euler_deg: 如果未提供仿射矩阵，可通过欧拉角旋转（度），随后平移 location
+      quaternion: 如果未提供仿射矩阵和欧拉角，可通过四元数旋转（[w, x, y, z]），随后平移 location
+      axis_angle: 如果未提供仿射矩阵、欧拉角和四元数，可通过轴角旋转（(axis, angle_deg)），随后平移 location
       location: 平移向量（仅在未提供 affine_matrix 时生效）
       keep_y_positive: True 则剔除变换后 y < 0 的顶点/面（适合取 Y 正半部分）
     """
@@ -119,6 +164,39 @@ def create_parametric_ellipsoid(
         else:
             raise ValueError("affine_matrix must be shape (4,4), (3,3) or (3,4)")
 
+        # 如果提供了旋转参数，先应用旋转
+        if rotation_euler_deg is not None:
+            rx, ry, rz = np.radians(rotation_euler_deg)
+            Rx = np.array(
+                [[1, 0, 0], [0, np.cos(rx), -np.sin(rx)], [0, np.sin(rx), np.cos(rx)]],
+                dtype=float,
+            )
+            Ry = np.array(
+                [[np.cos(ry), 0, np.sin(ry)], [0, 1, 0], [-np.sin(ry), 0, np.cos(ry)]],
+                dtype=float,
+            )
+            Rz = np.array(
+                [[np.cos(rz), -np.sin(rz), 0], [np.sin(rz), np.cos(rz), 0], [0, 0, 1]],
+                dtype=float,
+            )
+            R = Rz @ Ry @ Rx
+            pts = pts @ R.T
+        # 如果提供四元数，转换为旋转矩阵并应用
+        elif quaternion is not None:
+            R = _quaternion_to_rotation_matrix(quaternion)
+            # 将Matrix转换为numpy数组
+            R_np = np.array(R).T  # 转置是因为Blender使用列主序
+            pts = pts @ R_np
+        # 如果提供轴角，先转换为四元数，再转换为旋转矩阵并应用
+        elif axis_angle is not None:
+            axis, angle_deg = axis_angle
+            q = _axis_angle_to_quaternion(axis, math.radians(angle_deg))
+            R = _quaternion_to_rotation_matrix(q)
+            # 将Matrix转换为numpy数组
+            R_np = np.array(R).T  # 转置是因为Blender使用列主序
+            pts = pts @ R_np
+
+        # 然后应用仿射变换
         pts_h = np.hstack([pts, np.ones((pts.shape[0], 1), dtype=float)])  # (N,4)
         pts_t = (pts_h @ A4.T)[:, :3]
     else:
@@ -140,6 +218,21 @@ def create_parametric_ellipsoid(
             )
             R = Rz @ Ry @ Rx
             pts_t = pts_t @ R.T
+        # 如果提供四元数，转换为旋转矩阵并应用
+        elif quaternion is not None:
+            R = _quaternion_to_rotation_matrix(quaternion)
+            # 将Matrix转换为numpy数组
+            R_np = np.array(R).T  # 转置是因为Blender使用列主序
+            pts_t = pts_t @ R_np
+        # 如果提供轴角，先转换为四元数，再转换为旋转矩阵并应用
+        elif axis_angle is not None:
+            axis, angle_deg = axis_angle
+            q = _axis_angle_to_quaternion(axis, math.radians(angle_deg))
+            R = _quaternion_to_rotation_matrix(q)
+            # 将Matrix转换为numpy数组
+            R_np = np.array(R).T  # 转置是因为Blender使用列主序
+            pts_t = pts_t @ R_np
+
         # 平移
         loc = np.asarray(location, dtype=float)
         pts_t = pts_t + loc.reshape(1, 3)
@@ -763,123 +856,216 @@ def unregister():
     bpy.utils.unregister_class(CPR_OT_create_gnodes_from_active)
 
 
-# 示例：如果直接在 Blender 中运行该脚本
-if __name__ == "__main__":
-    # 注册 UI 类
-    try:
-        register()
-    except Exception:
-        pass
+M = Matrix(
+    (
+        (1.0, 0.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0, 0.0),
+        (0.0, 0.0, 1.0, 0.0),
+        (0.0, 0.0, 0.0, 1.0),
+    )
+)
 
-    # 清理场景（开发时便于重复运行）
-    clear_scene()
 
-    # # 示例1：默认椭球
-    # create_parametric_ellipsoid(
-    #     a=2.5,
-    #     b=1.2,
-    #     c=1.0,
-    #     u_res=64,
-    #     v_res=32,
-    #     name="Ellipsoid_default",
-    #     color=(0.2, 0.6, 1.0, 1.0),
-    # )
-
-    # # 示例2：仿射镜像 + 平移
-    # A = Matrix(
-    #     (
-    #         (-1.0, 0.0, 0.0, 3.0),
-    #         (0.0, 1.0, 0.0, 0.0),
-    #         (0.0, 0.0, -1.0, 0.0),
-    #         (0.0, 0.0, 0.0, 1.0),
-    #     )
-    # )
-    # create_parametric_ellipsoid(
-    #     a=1.0,
-    #     b=0.8,
-    #     c=1.2,
-    #     u_res=48,
-    #     v_res=24,
-    #     name="Ellipsoid_affine",
-    #     color=(1.0, 0.4, 0.6, 1.0),
-    #     affine_matrix=A,
-    # )
-
-    # # 示例3：只保留 Y >= 0 的部分曲面
-    # create_parametric_ellipsoid(
-    #     a=2.0,
-    #     b=1.0,
-    #     c=1.0,
-    #     u_res=48,
-    #     v_res=24,
-    #     name="Ellipsoid_halfY",
-    #     color=(1.0, 0.8, 0.2, 1.0),
-    #     keep_y_positive=True,
-    # )
-    a = 1.0
-    b = 1 / 3
-    c = 2
-    n = 4
+def petal(
+    a=2,
+    b=1 / 3,
+    c=2,
+    n=4,
+    u_res=100,
+    v_res=100,
+    color1=(1.0, 0.4, 1.0, 0.7),
+    color2=(0, 1.0, 0, 0.7),
+    affine_matrix=M,
+    name="Petal",
+    triangulate=True,
+    use_bmesh=True,
+    rotation_euler_deg=None,  # 绕原点的欧拉角旋转（度）
+    quaternion=None,  # 绕原点的四元数旋转
+    axis_angle=None,  # 绕原点的轴角旋转
+    location=(0.0, 0.0, 0.0),  # 绕原点的平移
+    scale=(1.0, 1.0, 1.0),  # 绕原点的缩放
+):
     theta = np.pi / 2 - np.pi / n
-    z_dist = c * np.cos(theta)
-    A = Matrix(
-        (
-            (1.0, 0.0, 0.0, 0.0),
-            (0.0, 1.0, 0.0, 0.0),
-            (0.0, 0.0, 1.0, -z_dist),
-            (0.0, 0.0, 0.0, 1.0),
-        )
-    )
-    create_parametric_ellipsoid(
+    y_dist = c * np.cos(theta)
+    x_dist = a * np.sin(theta)
+
+    # 为右半部分创建矩阵
+    A = affine_matrix.copy()
+    A[0][3] += x_dist
+    A[1][3] += -y_dist
+
+    # 创建右半部分
+    right_obj = create_parametric_ellipsoid(
         a,
         b,
         c,
-        u_res=100,
-        v_res=100,
+        u_res,
+        v_res,
         u_range=(0, np.pi),
         v_range=(0, theta),
-        name="Ellipsoid_Suface1",
-        color=(1.0, 0.4, 1.0, 0.7),
+        name=name + "_right",
+        color=color1,
         affine_matrix=A,
+        rotation_euler_deg=(-90, 0, 0),
+        triangulate=triangulate,
+        use_bmesh=use_bmesh,
     )
-    B = Matrix(
-        (
-            (-1.0, 0.0, 0.0, 0.0),
-            (0.0, 1.0, 0.0, 0.0),
-            (0.0, 0.0, -1.0, z_dist),
-            (0.0, 0.0, 0.0, 1.0),
-        )
-    )
-    create_parametric_ellipsoid(
+
+    # 为左半部分创建矩阵
+    B = affine_matrix.copy()
+    B[0][0] = -B[0][0]
+    B[1][1] = -B[1][1]
+    B[0][3] += x_dist
+    B[1][3] += y_dist
+
+    # 创建左半部分
+    left_obj = create_parametric_ellipsoid(
         a,
         b,
         c,
-        u_res=100,
-        v_res=100,
+        u_res,
+        v_res,
         u_range=(0, np.pi),
         v_range=(0, theta),
-        name="Ellipsoid_Suface2",
-        color=(0, 1.0, 0, 0.7),
+        name=name + "_left",
+        color=color2,
         affine_matrix=B,
+        rotation_euler_deg=(-90, 0, 0),
+        triangulate=triangulate,
+        use_bmesh=use_bmesh,
     )
-    # C = Matrix(
-    #     (
-    #         (1.0, 0.0, 0.0, 0.0),
-    #         (0.0, 1.0, 0.0, 0.0),
-    #         (0.0, 0.0, 1.0, -np.cos(np.pi / 4)),
-    #         (0.0, 0.0, 0.0, 1.0),
-    #     )
-    # )
-    # create_parametric_ellipsoid(
-    #     a=4.0,
-    #     b=1.0,
-    #     c=1.0,
-    #     u_res=100,
-    #     v_res=100,
-    #     u_range=(0, np.pi),
-    #     v_range=(0, np.pi / 2 / 2),
-    #     name="Ellipsoid_Suface3",
-    #     color=(0, 0, 1.0, 0.7),
-    #     affine_matrix=C,
-    # )
-    print("Blender: 已创建示例椭球对象，检查 3D 视图。")
+
+    # 创建一个空对象作为父级，用于整体变换
+    if right_obj is not None and left_obj is not None:
+        # 创建一个空对象作为父级
+        parent_empty = bpy.data.objects.new(name + "_parent", None)
+        bpy.context.collection.objects.link(parent_empty)
+
+        # 设置整体变换
+        if rotation_euler_deg is not None:
+            parent_empty.rotation_euler = [
+                math.radians(deg) for deg in rotation_euler_deg
+            ]
+        elif quaternion is not None:
+            parent_empty.rotation_mode = "QUATERNION"
+            parent_empty.rotation_quaternion = quaternion
+        elif axis_angle is not None:
+            axis, angle_deg = axis_angle
+            # 将轴角转换为欧拉角（因为Blender的空对象不直接支持轴角旋转）
+            quat = Quaternion(axis, math.radians(angle_deg))
+            parent_empty.rotation_mode = "QUATERNION"
+            parent_empty.rotation_quaternion = quat
+        # 应用平移
+        parent_empty.location = location
+        # 应用缩放
+        parent_empty.scale = scale
+
+        # 设置父子关系
+        right_obj.parent = parent_empty
+        left_obj.parent = parent_empty
+
+
+clear_scene()
+# 示例：创建一个
+# petal(
+#     a=2,
+#     b=1 / 3,
+#     c=2,
+#     n=4,
+#     u_res=100,
+#     v_res=100,
+#     color1=(1.0, 0.5, 0.5, 0.7),
+#     color2=(1.0, 0.5, 0.5, 0.7),
+#     affine_matrix=M,
+#     name="Petal",
+# )
+
+# # 示例：使用新增的整体变换功能
+# # 创建一个旋转30度、平移(2, 0, 0)、缩放(1.2, 1.2, 1.0)的
+# petal(
+#     a=2,
+#     b=1 / 3,
+#     c=2,
+#     n=4,
+#     u_res=100,
+#     v_res=100,
+#     color1=(0.5, 1.0, 0.5, 0.7),
+#     color2=(0.5, 0.5, 1.0, 0.7),
+#     affine_matrix=M,
+#     name="Petal_Rotated",
+#     rotation_euler_deg=(0, 0, 30),  # 绕Z轴旋转30度
+#     location=(2, 0, 0),  # 平移
+#     scale=(1.2, 1.2, 1.0),  # 缩放
+# )
+
+for i in range(12):
+    petal(
+        a=2,
+        b=1 / 3,
+        c=2,
+        n=4,
+        u_res=100,
+        v_res=100,
+        color1=(0.5, 1.0, 0.5, 0.7),
+        color2=(0.5, 0.5, 1.0, 0.7),
+        affine_matrix=M,
+        name="Petal_L0_" + str(i + 1),
+        rotation_euler_deg=(15, 0, i * 30 + 15),  # 绕Z轴旋转30度
+        scale=(np.sqrt(8), np.sqrt(8), np.sqrt(8)),
+    )
+    petal(
+        a=2,
+        b=1 / 3,
+        c=2,
+        n=4,
+        u_res=100,
+        v_res=100,
+        color1=(0.5, 1.0, 0.5, 0.7),
+        color2=(0.5, 0.5, 1.0, 0.7),
+        affine_matrix=M,
+        name="Petal_L1_" + str(i + 1),
+        rotation_euler_deg=(15, -15, i * 30),  # 绕Z轴旋转30度
+        scale=(2, 2, 2),
+    )
+    petal(
+        a=2,
+        b=1 / 3,
+        c=2,
+        n=4,
+        u_res=100,
+        v_res=100,
+        color1=(0.5, 1.0, 0.5, 0.7),
+        color2=(0.5, 0.5, 1.0, 0.7),
+        affine_matrix=M,
+        name="Petal_L2_" + str(i + 1),
+        rotation_euler_deg=(30, -30, i * 30 + 15),  # 绕Z轴旋转30度
+        scale=(1.5, 1.5, 1.5),  # 缩放
+    )
+    petal(
+        a=2,
+        b=1 / 3,
+        c=2,
+        n=4,
+        u_res=100,
+        v_res=100,
+        color1=(0.5, 1.0, 0.5, 0.7),
+        color2=(0.5, 0.5, 1.0, 0.7),
+        affine_matrix=M,
+        name="Petal_L3_" + str(i + 1),
+        rotation_euler_deg=(30, -45, i * 30),  # 绕Z轴旋转30度
+        scale=(1.3, 1.3, 1.3),  # 缩放
+    )
+    petal(
+        a=2,
+        b=1 / 3,
+        c=2,
+        n=4,
+        u_res=100,
+        v_res=100,
+        color1=(0.5, 1.0, 0.5, 0.7),
+        color2=(0.5, 0.5, 1.0, 0.7),
+        affine_matrix=M,
+        name="Petal_L4_" + str(i + 1),
+        rotation_euler_deg=(30, -60, i * 30 + 15),  # 绕Z轴旋转30度
+        scale=(1, 1, 1),  # 缩放
+    )

@@ -51,6 +51,36 @@ def _euler_to_rotation(rx: float, ry: float, rz: float) -> np.ndarray:
     return Rz @ Ry @ Rx
 
 
+def _quaternion_to_rotation_matrix(q: np.ndarray) -> np.ndarray:
+    """
+    将四元数转换为旋转矩阵
+    参数: q = [w, x, y, z] - 四元数 (w是标量部分, [x, y, z]是向量部分)
+    返回: 3x3 旋转矩阵
+    """
+    w, x, y, z = q / np.linalg.norm(q)  # 确保四元数是单位四元数
+
+    # 计算旋转矩阵
+    return np.array([
+        [1 - 2*(y**2 + z**2), 2*(x*y - w*z), 2*(x*z + w*y)],
+        [2*(x*y + w*z), 1 - 2*(x**2 + z**2), 2*(y*z - w*x)],
+        [2*(x*z - w*y), 2*(y*z + w*x), 1 - 2*(x**2 + y**2)]
+    ], dtype=float)
+
+
+def _axis_angle_to_quaternion(axis: np.ndarray, angle: float) -> np.ndarray:
+    """
+    将轴角表示转换为四元数
+    参数: axis - 旋转轴向量
+          angle - 旋转角度（弧度）
+    返回: [w, x, y, z] 四元数
+    """
+    axis = axis / np.linalg.norm(axis)  # 标准化轴向量
+    half_angle = angle / 2
+    sin_half = np.sin(half_angle)
+    cos_half = np.cos(half_angle)
+    return np.array([cos_half, axis[0] * sin_half, axis[1] * sin_half, axis[2] * sin_half])
+
+
 def _get_uv_grid(
     u_res: int, v_res: int, u_range: Tuple[float, float], v_range: Tuple[float, float]
 ):
@@ -83,6 +113,8 @@ def ellipsoid(
     center=(0, 0, 0),
     rotation=None,
     affine_matrix=None,
+    quaternion=None,
+    axis_angle=None,
     u_res=30,
     v_res=30,
     u_range=(0, 2 * np.pi),
@@ -103,6 +135,8 @@ def ellipsoid(
         center: 椭球中心 (x, y, z)
         rotation: 旋转角度 (rx, ry, rz)（欧拉角，度数），None 表示无旋转
         affine_matrix: 可选 4x4 齐次仿射矩阵，优先于 rotation/center
+        quaternion: 可选四元数 [w, x, y, z]，用于旋转，优先于 rotation
+        axis_angle: 可选轴角表示 (axis, angle)，其中 axis 为3维向量，angle 为角度（度），优先于 rotation
         u_res, v_res: 网格分辨率（越大越精细，默认 30）
         u_range: u 参数范围 (u_min, u_max)，默认 (0, 2π) 为完整圆周
         v_range: v 参数范围 (v_min, v_max)，默认 (0, π) 为完整球面
@@ -132,6 +166,16 @@ def ellipsoid(
     if u_res < 2 or v_res < 2:
         raise ValueError("u_res and v_res must be >= 2")
 
+    # 检查旋转参数冲突
+    rotation_count = sum([
+        rotation is not None,
+        affine_matrix is not None,
+        quaternion is not None,
+        axis_angle is not None
+    ])
+    if rotation_count > 1:
+        raise ValueError("只能指定一个旋转参数：rotation, affine_matrix, quaternion 或 axis_angle")
+
     # 使用缓存的网格生成函数，避免重复分配
     u_grid, v_grid = _get_uv_grid(u_res, v_res, u_range, v_range)
 
@@ -140,7 +184,7 @@ def ellipsoid(
     y = (b * np.sin(u_grid) * np.sin(v_grid)).astype(float)
     z = (c * np.cos(v_grid)).astype(float)
 
-    # 旋转或仿射变换处理：优先使用 affine_matrix
+    # 旋转或仿射变换处理：优先级为 affine_matrix > quaternion > axis_angle > rotation
     if affine_matrix is not None:
         A4 = _ensure_affine4(affine_matrix)
         # 使用 ravel + column_stack 减少中间大数组分配
@@ -151,6 +195,33 @@ def ellipsoid(
         x = pts_trans[:, 0].reshape(x.shape)
         y = pts_trans[:, 1].reshape(x.shape)
         z = pts_trans[:, 2].reshape(x.shape)
+    elif quaternion is not None:
+        # 使用四元数进行旋转
+        q = np.asarray(quaternion, dtype=float)
+        if q.shape != (4,):
+            raise ValueError("quaternion must be a 4-element array [w, x, y, z]")
+        R = _quaternion_to_rotation_matrix(q)
+        pts_flat = np.column_stack([x.ravel(), y.ravel(), z.ravel()])
+        pts_rot = pts_flat @ R.T
+        x = pts_rot[:, 0].reshape(x.shape)
+        y = pts_rot[:, 1].reshape(x.shape)
+        z = pts_rot[:, 2].reshape(x.shape)
+    elif axis_angle is not None:
+        # 使用轴角表示进行旋转
+        if not isinstance(axis_angle, (list, tuple)) or len(axis_angle) != 2:
+            raise ValueError("axis_angle must be a tuple/list of (axis, angle)")
+        axis, angle_deg = axis_angle
+        axis = np.asarray(axis, dtype=float)
+        if axis.shape != (3,):
+            raise ValueError("axis must be a 3-element array")
+        angle_rad = np.radians(angle_deg)
+        q = _axis_angle_to_quaternion(axis, angle_rad)
+        R = _quaternion_to_rotation_matrix(q)
+        pts_flat = np.column_stack([x.ravel(), y.ravel(), z.ravel()])
+        pts_rot = pts_flat @ R.T
+        x = pts_rot[:, 0].reshape(x.shape)
+        y = pts_rot[:, 1].reshape(x.shape)
+        z = pts_rot[:, 2].reshape(x.shape)
     else:
         # 使用欧拉角旋转（如果提供），并且最后再平移 center
         if rotation is not None:
