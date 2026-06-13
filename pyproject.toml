@@ -1,6 +1,6 @@
 [project]
 name = "cprdspy"
-version = "0.2.4"
+version = "0.3.0"
 description = "CPR可视化工具包 - 基于Plotly和Matplotlib的圈点圆可视化Python工具包"
 readme = "README.md"
 requires-python = ">=3.13"

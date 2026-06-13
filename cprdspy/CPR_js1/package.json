@@ -1,0 +1,37 @@
+{
+  "name": "cpr-js1",
+  "version": "1.0.0",
+  "description": "CPR 图形库 - JavaScript 版本，提供 SVG 绘制几何图形的功能",
+  "type": "module",
+  "main": "index.js",
+  "module": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./circles": "./Circles/circle.js",
+    "./arcs": "./Arcs/arc.js",
+    "./flowers": "./Flowers/flower.js",
+    "./spirals": "./Spirals/spiral.js",
+    "./waves": "./Waves/waves.js"
+  },
+  "files": [
+    "index.js",
+    "Circles/",
+    "Arcs/",
+    "Flowers/",
+    "Spirals/",
+    "Waves/"
+  ],
+  "scripts": {
+    "test": "echo \"Open test.html in browser\"",
+    "serve": "npx serve ."
+  },
+  "keywords": [
+    "cpr",
+    "graphics",
+    "svg",
+    "geometry",
+    "visualization"
+  ],
+  "author": "",
+  "license": "MIT"
+}

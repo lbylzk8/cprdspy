@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPR_js2 测试 - Plotly.js 版本</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+        .plot-container {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        h1 {
+            text-align: center;
+            color: #00ff88;
+        }
+        h3 {
+            color: #00d4ff;
+            margin-top: 0;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: #00ff88;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>CPR_js2 测试 - Plotly.js 版本</h1>
+
+    <div class="controls">
+        <button onclick="renderAll()">重新渲染所有图形</button>
+    </div>
+
+    <div class="container">
+        <div class="plot-container" id="circle-plot">
+            <h3>圆形 (Circle)</h3>
+            <div id="circle"></div>
+        </div>
+
+        <div class="plot-container" id="ellipse-plot">
+            <h3>椭圆 (Ellipse)</h3>
+            <div id="ellipse"></div>
+        </div>
+
+        <div class="plot-container" id="concentric-circles-plot">
+            <h3>同心圆 (Concentric Circles)</h3>
+            <div id="concentric-circles"></div>
+        </div>
+
+        <div class="plot-container" id="concentric-ellipses-plot">
+            <h3>同心椭圆 (Concentric Ellipses)</h3>
+            <div id="concentric-ellipses"></div>
+        </div>
+
+        <div class="plot-container" id="arc-plot">
+            <h3>圆弧 (Arc)</h3>
+            <div id="arc"></div>
+        </div>
+
+        <div class="plot-container" id="oval-arc-plot">
+            <h3>椭圆弧 (Oval Arc)</h3>
+            <div id="oval-arc"></div>
+        </div>
+
+        <div class="plot-container" id="flower-plot">
+            <h3>花朵 (Flower)</h3>
+            <div id="flower"></div>
+        </div>
+
+        <div class="plot-container" id="flowers-plot">
+            <h3>多层花朵 (Flowers)</h3>
+            <div id="flowers"></div>
+        </div>
+
+        <div class="plot-container" id="oval-flower-plot">
+            <h3>椭圆花 (Oval Flower)</h3>
+            <div id="oval-flower"></div>
+        </div>
+
+        <div class="plot-container" id="log-spiral-plot">
+            <h3>对数螺线 (Log Spiral)</h3>
+            <div id="log-spiral"></div>
+        </div>
+
+        <div class="plot-container" id="n-spiral-plot">
+            <h3>n 瓣螺旋 (N Spiral)</h3>
+            <div id="n-spiral"></div>
+        </div>
+
+        <div class="plot-container" id="calla-petal-plot">
+            <h3>马蹄莲 (Calla Petal)</h3>
+            <div id="calla-petal"></div>
+        </div>
+
+        <div class="plot-container" id="wave-ari-plot">
+            <h3>等差波浪 (Wave Arithmetic)</h3>
+            <div id="wave-ari"></div>
+        </div>
+
+        <div class="plot-container" id="wave-geo-plot">
+            <h3>等比波浪 (Wave Geometric)</h3>
+            <div id="wave-geo"></div>
+        </div>
+
+        <div class="plot-container" id="wave-plot">
+            <h3>波浪 (Wave)</h3>
+            <div id="wave"></div>
+        </div>
+
+        <div class="plot-container" id="wave-wave-plot">
+            <h3>嵌套波浪 (Wave Wave)</h3>
+            <div id="wave-wave"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            circle, ellipse, concentricCircles, concentricEllipses,
+            arc, ovalArc,
+            flower, flowers, ovalFlower,
+            logSpiral, nSpiral, callaByPetal,
+            waveAri, waveGeo, wave, waveWave
+        } from './index.js';
+
+        const layout = {
+            width: 450,
+            height: 450,
+            paper_bgcolor: '#16213e',
+            plot_bgcolor: '#16213e',
+            xaxis: { showgrid: false, zeroline: false, showticklabels: false, scaleanchor: 'y', scaleratio: 1 },
+            yaxis: { showgrid: false, zeroline: false, showticklabels: false, scaleanchor: 'x', scaleratio: 1 },
+            margin: { l: 10, r: 10, t: 30, b: 10 },
+            showlegend: false
+        };
+
+        function renderPlot(divId, traces, title) {
+            const config = { responsive: false, displayModeBar: false };
+
+            // 计算所有轨迹的边界
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const trace of traces) {
+                if (trace.x && trace.x.length > 0) {
+                    minX = Math.min(minX, Math.min(...trace.x));
+                    maxX = Math.max(maxX, Math.max(...trace.x));
+                    minY = Math.min(minY, Math.min(...trace.y));
+                    maxY = Math.max(maxY, Math.max(...trace.y));
+                }
+            }
+
+            // 添加 10% 的边距
+            const paddingX = (maxX - minX) * 0.1 || 1;
+            const paddingY = (maxY - minY) * 0.1 || 1;
+
+            const plotLayout = {
+                ...layout,
+                title: { text: title, font: { color: '#00d4ff' } },
+                xaxis: {
+                    showgrid: false,
+                    zeroline: false,
+                    showticklabels: false,
+                    scaleanchor: 'y',
+                    scaleratio: 1,
+                    range: [minX - paddingX, maxX + paddingX]
+                },
+                yaxis: {
+                    showgrid: false,
+                    zeroline: false,
+                    showticklabels: false,
+                    constrain: 'domain',
+                    range: [minY - paddingY, maxY + paddingY]
+                }
+            };
+            Plotly.newPlot(divId, traces, plotLayout, config);
+        }
+
+        function renderAll() {
+            // Circle
+            const circleTrace = circle({ radius: 1, color: '#00ff88', center: [0, 0] });
+            renderPlot('circle', [circleTrace], 'Circle');
+
+            // Ellipse
+            const ellipseTrace = ellipse({ a: 2, b: 1, color: '#00d4ff', center: [0, 0] });
+            renderPlot('ellipse', [ellipseTrace], 'Ellipse');
+
+            // Concentric Circles
+            const concentricCircleTraces = concentricCircles({ center: [0, 0], n: 5, radius: 1, param: 0.3, color: '#ff6b6b' });
+            renderPlot('concentric-circles', concentricCircleTraces, 'Concentric Circles');
+
+            // Concentric Ellipses
+            const concentricEllipseTraces = concentricEllipses({ center: [0, 0], n: 5, a: 2, b: 1, param: 0.3, color: '#ffd93d' });
+            renderPlot('concentric-ellipses', concentricEllipseTraces, 'Concentric Ellipses');
+
+            // Arc
+            const arcTrace = arc({ r: 1, angle1: 0, angle2: 180, color: '#00ff88', center: [0, 0] });
+            const arcTrace2 = arc({ r: 1, angle1: 180, angle2: 360, color: '#ff6b6b', center: [0, 0] });
+            renderPlot('arc', [arcTrace, arcTrace2], 'Arc');
+
+            // Oval Arc
+            const ovalArcTrace = ovalArc({ a: 2, b: 1, angle1: 0, angle2: 180, color: '#00d4ff', center: [0, 0] });
+            renderPlot('oval-arc', [ovalArcTrace], 'Oval Arc');
+
+            // Flower (r 必须 >= a = R * sin(π/n)，对于 n=4, R=1, a≈0.707)
+            const flowerTraces = flower({ R: 1, r: 1, n: 4, N: 12, color: '#00ff88', center: [0, 0] });
+            renderPlot('flower', flowerTraces, 'Flower');
+
+            // Flowers (multi-layer) - r 足够大以形成花瓣
+            const flowersTraces = flowers({ R: 1, r: 1, n: 4, M: 3, N: 12, ratio: Math.sqrt(2), color: '#ffd93d', center: [0, 0] });
+            renderPlot('flowers', flowersTraces, 'Flowers (Multi-layer)');
+
+            // Oval Flower
+            const ovalFlowerTraces = ovalFlower({ a: 2, b: 1, d: 0.3, n: 12, color: '#ff6b6b', center: [0, 0] });
+            renderPlot('oval-flower', ovalFlowerTraces, 'Oval Flower');
+
+            // Log Spiral
+            const logSpiralTrace = logSpiral({ n: 4, cyc: 2, color: '#00ff88' });
+            renderPlot('log-spiral', [logSpiralTrace], 'Log Spiral');
+
+            // N Spiral
+            const nSpiralTraces = nSpiral({ n: 4, N: 4, cyc: 1, color: '#00d4ff' });
+            renderPlot('n-spiral', nSpiralTraces, 'N Spiral');
+
+            // Calla Petal
+            const callaTraces = callaByPetal({ n: 4, cyc: 1, N: 6, theta: 0, colors: ['#ff6b6b', '#ffd93d', '#00ff88', '#00d4ff', '#ff99ff', '#99ff99'] });
+            renderPlot('calla-petal', callaTraces, 'Calla Petal');
+
+            // Wave Arithmetic
+            const waveAriTraces = waveAri({ A: 0.2, F: 4, P: 8, R: 0.5, color: '#00ff88', center: [0, 0] });
+            renderPlot('wave-ari', waveAriTraces, 'Wave Arithmetic');
+
+            // Wave Geometric
+            const waveGeoTraces = waveGeo({ A: 1.5, F: 3, P: 8, R: 0.5, color: '#00d4ff', center: [0, 0] });
+            renderPlot('wave-geo', waveGeoTraces, 'Wave Geometric');
+
+            // Wave
+            const waveTraces = wave({ A: 1.5, F: 3, P: 8, R: 0.5, mode: 'geometric', color: '#ffd93d', center: [0, 0] });
+            renderPlot('wave', waveTraces, 'Wave');
+
+            // Wave Wave
+            const waveWaveTraces = waveWave({ A: 1.3, F: 2, P: 6, R: 0.3, mode: 'geometric', color: '#ff6b6b', center: [0, 0] });
+            renderPlot('wave-wave', waveWaveTraces, 'Wave Wave (Nested)');
+        }
+
+        // Initial render
+        renderAll();
+
+        // Make renderAll available globally for the button
+        window.renderAll = renderAll;
+    </script>
+</body>
+</html>

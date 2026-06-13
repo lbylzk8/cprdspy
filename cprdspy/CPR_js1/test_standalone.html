@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPR_js1 模块测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e; color: #eee; padding: 20px;
+        }
+        h1 { text-align: center; margin-bottom: 10px; color: #00ff88; }
+        .subtitle { text-align: center; margin-bottom: 30px; color: #888; }
+        .test-section {
+            background: #16213e; border-radius: 10px; padding: 20px; margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #00d4ff; margin-bottom: 15px; font-size: 1.2em;
+            border-bottom: 1px solid #333; padding-bottom: 10px;
+        }
+        .canvas-container {
+            display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
+        }
+        .canvas-item {
+            background: #0f0f23; border-radius: 8px; padding: 10px; text-align: center;
+        }
+        .canvas-item svg { border: 1px solid #333; border-radius: 4px; }
+        .canvas-item p { margin-top: 10px; font-size: 0.9em; color: #aaa; }
+    </style>
+</head>
+<body>
+    <h1>CPR_js1 模块测试</h1>
+    <p class="subtitle">JavaScript 版本的 CPR 图形库测试页面</p>
+
+    <div class="test-section">
+        <h2>1. Circles 模块 - 圆形和椭圆</h2>
+        <div class="canvas-container">
+            <div class="canvas-item"><div id="circle-canvas"></div><p>circle - 圆形</p></div>
+            <div class="canvas-item"><div id="ellipse-canvas"></div><p>ellipse - 椭圆</p></div>
+            <div class="canvas-item"><div id="concentric-canvas"></div><p>concentricCircles - 同心圆</p></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Arcs 模块 - 圆弧和椭圆弧</h2>
+        <div class="canvas-container">
+            <div class="canvas-item"><div id="arc-canvas"></div><p>arc - 圆弧</p></div>
+            <div class="canvas-item"><div id="arcpoint-canvas"></div><p>arcPoint - 两点画弧</p></div>
+            <div class="canvas-item"><div id="ovalarc-canvas"></div><p>ovalArc - 椭圆弧</p></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Flowers 模块 - 花朵图案</h2>
+        <div class="canvas-container">
+            <div class="canvas-item"><div id="flower-canvas"></div><p>flower - 单层花</p></div>
+            <div class="canvas-item"><div id="flowers-canvas"></div><p>flowers - 多层花</p></div>
+            <div class="canvas-item"><div id="ovalflower-canvas"></div><p>ovalFlower - 椭圆花</p></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Spirals 模块 - 螺旋线</h2>
+        <div class="canvas-container">
+            <div class="canvas-item"><div id="logspiral-canvas"></div><p>logSpiral - 对数螺线</p></div>
+            <div class="canvas-item"><div id="nspiral-canvas"></div><p>nSpiralRotate - 旋转螺旋</p></div>
+            <div class="canvas-item"><div id="calla-canvas"></div><p>callaByPetal - 马蹄莲</p></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Waves 模块 - 波形图案</h2>
+        <div class="canvas-container">
+            <div class="canvas-item"><div id="wave-canvas"></div><p>wave - 波形</p></div>
+            <div class="canvas-item"><div id="waveari-canvas"></div><p>waveAri - 等差波</p></div>
+            <div class="canvas-item"><div id="wavegeo-canvas"></div><p>waveGeo - 等比波</p></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. 综合测试 - 组合图案</h2>
+        <div class="canvas-container">
+            <div class="canvas-item" style="width: 100%;">
+                <div id="combination-canvas"></div><p>组合图案</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // === CPR_js1 库代码 ===
+
+    // Circles 模块
+    function circle({ radius = 1, color = "#0F0", alpha = 1, center = [0, 0], points = 100, lineWidth = 1 } = {}) {
+        const pathData = [];
+        for (let i = 0; i <= points; i++) {
+            const angle = (2 * Math.PI * i) / points;
+            const x = center[0] + radius * Math.cos(angle);
+            const y = center[1] + radius * Math.sin(angle);
+            pathData.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
+        }
+        pathData.push("Z");
+        return { type: "circle", d: pathData.join(" "), fill: "none", stroke: color, "stroke-width": lineWidth, "stroke-opacity": alpha };
+    }
+
+    function ellipse({ a = 2, b = 1, rotation = 0, color = "#0f0", alpha = 1, center = [0, 0], points = 1000, lineWidth = 1 } = {}) {
+        const angleRad = (rotation * Math.PI) / 180;
+        const pathData = [];
+        for (let i = 0; i <= points; i++) {
+            const theta = (2 * Math.PI * i) / points;
+            const x = a * Math.cos(theta) * Math.cos(angleRad) - b * Math.sin(theta) * Math.sin(angleRad) + center[0];
+            const y = a * Math.cos(theta) * Math.sin(angleRad) + b * Math.sin(theta) * Math.cos(angleRad) + center[1];
+            pathData.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
+        }
+        pathData.push("Z");
+        return { type: "ellipse", d: pathData.join(" "), fill: "none", stroke: color, "stroke-width": lineWidth, "stroke-opacity": alpha };
+    }
+
+    function concentricCircles({ center = [0, 0], n = 3, radius = 1, param = 0.5, mode = "arithmetic", direction = "both", color = "#0F0", alpha = 1, points = 200, lineWidth = 1, showCenter = true } = {}) {
+        const paths = [];
+        if (showCenter) paths.push({ type: "center", cx: center[0], cy: center[1], fill: color, r: 3 });
+        const radii = [];
+        const d = parseFloat(param), q = parseFloat(param);
+        if (mode.startsWith("a")) {
+            if (direction === "both") for (let i = 1; i <= n; i++) { radii.push(radius + i * d); radii.push(radius - i * d); }
+            else if (direction === "out") for (let i = 1; i <= n; i++) radii.push(radius + i * d);
+            else if (direction === "in") for (let i = 1; i <= n; i++) radii.push(radius - i * d);
+        } else if (mode.startsWith("g")) {
+            if (direction === "both") for (let i = 1; i <= n; i++) { radii.push(radius * Math.pow(q, i)); radii.push(radius / Math.pow(q, i)); }
+            else if (direction === "out") for (let i = 1; i <= n; i++) radii.push(radius * Math.pow(q, i));
+            else if (direction === "in") for (let i = 1; i <= n; i++) radii.push(radius / Math.pow(q, i));
+        }
+        radii.push(radius);
+        const uniqueRadii = [...new Set(radii)].filter(r => r > 0).sort((a, b) => a - b);
+        for (const r of uniqueRadii) paths.push(circle({ radius: r, color, alpha, center, points, lineWidth }));
+        return paths;
+    }
+
+    function concentricEllipses({ center = [0, 0], n = 3, a = 2, b = 1, param = 0.5, mode = "arithmetic", direction = "both", rotation = 0, color = "#0F0", alpha = 1, points = 200, lineWidth = 1, showCenter = true } = {}) {
+        const paths = [];
+        if (showCenter) paths.push({ type: "center", cx: center[0], cy: center[1], fill: color, r: 3 });
+        const ellipses = [];
+        const d = parseFloat(param), q = parseFloat(param);
+        if (mode.startsWith("a")) {
+            if (direction === "both") for (let i = 1; i <= n; i++) { ellipses.push([a + i * d, b + i * d]); ellipses.push([a - i * d, b - i * d]); }
+            else if (direction === "out") for (let i = 1; i <= n; i++) ellipses.push([a + i * d, b + i * d]);
+            else if (direction === "in") for (let i = 1; i <= n; i++) ellipses.push([a - i * d, b - i * d]);
+        } else if (mode.startsWith("g")) {
+            if (direction === "both") for (let i = 1; i <= n; i++) { ellipses.push([a * Math.pow(q, i), b * Math.pow(q, i)]); ellipses.push([a / Math.pow(q, i), b / Math.pow(q, i)]); }
+            else if (direction === "out") for (let i = 1; i <= n; i++) ellipses.push([a * Math.pow(q, i), b * Math.pow(q, i)]);
+            else if (direction === "in") for (let i = 1; i <= n; i++) ellipses.push([a / Math.pow(q, i), b / Math.pow(q, i)]);
+        }
+        ellipses.push([a, b]);
+        const uniqueMap = new Map();
+        for (const [aa, bb] of ellipses) { if (aa > 0 && bb > 0) uniqueMap.set(`${aa.toFixed(12)},${bb.toFixed(12)}`, [aa, bb]); }
+        const sortedEllipses = [...uniqueMap.values()].sort(([a1, b1], [a2, b2]) => a1 * b1 - a2 * b2);
+        for (const [aa, bb] of sortedEllipses) paths.push(ellipse({ a: aa, b: bb, rotation, color, alpha, center, points, lineWidth }));
+        return paths;
+    }
+
+    // Arcs 模块
+    function arcPoint({ center = [0, 0], point1 = [1, 0], point2 = [-1, 0], color = "#0f0", alpha = 1, points = 1000, lineWidth = 1, direction = "ccw" } = {}) {
+        const v1 = [point1[0] - center[0], point1[1] - center[1]], v2 = [point2[0] - center[0], point2[1] - center[1]];
+        const r1 = Math.sqrt(v1[0] ** 2 + v1[1] ** 2), r2 = Math.sqrt(v2[0] ** 2 + v2[1] ** 2);
+        const r = r1;
+        let theta1 = Math.atan2(v1[1], v1[0]) % (2 * Math.PI), theta2 = Math.atan2(v2[1], v2[0]) % (2 * Math.PI);
+        if (theta1 < 0) theta1 += 2 * Math.PI; if (theta2 < 0) theta2 += 2 * Math.PI;
+        if (direction === "ccw") { if (theta2 <= theta1) theta2 += 2 * Math.PI; } else { if (theta1 <= theta2) theta1 += 2 * Math.PI; }
+        const pathData = [];
+        for (let i = 0; i <= points; i++) {
+            const t = theta1 + ((theta2 - theta1) * i) / points;
+            const x = center[0] + r * Math.cos(t), y = center[1] + r * Math.sin(t);
+            pathData.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
+        }
+        return { type: "arc", d: pathData.join(" "), fill: "none", stroke: color, "stroke-width": lineWidth, "stroke-opacity": alpha };
+    }
+
+    function arc({ r = 1, angle1 = 45, angle2 = 135, rotation = 0, color = "#0f0", alpha = 1, center = [0, 0], points = 1000, lineWidth = 1, useDegree = true, direction = "ccw" } = {}) {
+        let theta1, theta2, rot;
+        if (useDegree) { theta1 = (angle1 * Math.PI) / 180; theta2 = (angle2 * Math.PI) / 180; rot = (rotation * Math.PI) / 180; }
+        else { theta1 = angle1; theta2 = angle2; rot = rotation; }
+        if (direction === "ccw") { if (theta2 <= theta1) theta2 += 2 * Math.PI; } else { if (theta1 <= theta2) theta1 += 2 * Math.PI; }
+        const cosRot = Math.cos(rot), sinRot = Math.sin(rot);
+        const pathData = [];
+        for (let i = 0; i <= points; i++) {
+            const theta = theta1 + ((theta2 - theta1) * i) / points;
+            const x = center[0] + r * (Math.cos(theta) * cosRot - Math.sin(theta) * sinRot);
+            const y = center[1] + r * (Math.sin(theta) * cosRot + Math.cos(theta) * sinRot);
+            pathData.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
+        }
+        return { type: "arc", d: pathData.join(" "), fill: "none", stroke: color, "stroke-width": lineWidth, "stroke-opacity": alpha };
+    }
+
+    function ovalArc({ a = 2, b = 1, angle1 = 45, angle2 = 135, angle = 0, color = "#0f0", alpha = 1, center = [0, 0], points = 1000, lineWidth = 1, useDegree = true } = {}) {
+        let angle1Rad, angle2Rad, angleRad;
+        if (useDegree) { angle1Rad = (angle1 * Math.PI) / 180; angle2Rad = (angle2 * Math.PI) / 180; angleRad = (angle * Math.PI) / 180; }
+        else { angle1Rad = angle1; angle2Rad = angle2; angleRad = angle; }
+        const pathData = [];
+        for (let i = 0; i <= points; i++) {
+            const theta = angle1Rad + ((angle2Rad - angle1Rad) * i) / points;
+            const x = a * Math.cos(theta) * Math.cos(angleRad) - b * Math.sin(theta) * Math.sin(angleRad) + center[0];
+            const y = a * Math.cos(theta) * Math.sin(angleRad) + b * Math.sin(theta) * Math.cos(angleRad) + center[1];
+            pathData.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
+        }
+        return { type: "ovalArc", d: pathData.join(" "), fill: "none", stroke: color, "stroke-width": lineWidth, "stroke-opacity": alpha };
+    }
+
+    // Flowers 模块
+    function rotatePoint(point, theta) {
+        const [x, y] = point;
+        return [x * Math.cos(theta) - y * Math.sin(theta), x * Math.sin(theta) + y * Math.cos(theta)];
+    }
+
+    function flowerPetal({ R = 1, r = 1, n = 4, rotation = 0, color = "#0f0", alpha = 1, center = [0, 0], points = 1000, lineWidth = 1, useDegree = false, direction = "ccw" } = {}) {
+        const angle = (2 * Math.PI) / n;
+        const a = R * Math.sin(Math.PI / n);
+        let beta = r > 0 ? Math.acos(Math.min(1, Math.max(-1, a / r))) : 0;
+        const thetaArc = Math.PI / 2 - Math.PI / n + Math.acos(Math.min(1, Math.max(-1, a / r)));
+        const rotationRad = useDegree ? (rotation * Math.PI) / 180 : rotation;
+        const center1Theta = rotationRad + angle / 2, center2Theta = rotationRad - angle / 2;
+        const center1 = [Math.cos(center1Theta) * R + center[0], Math.sin(center1Theta) * R + center[1]];
+        const center2 = [Math.cos(center2Theta) * R + center[0], Math.sin(center2Theta) * R + center[1]];
+        let theta1BaseRad, theta2BaseRad, theta3BaseRad, theta4BaseRad;
+        if (Math.abs(r - a) < 1e-12) {
+            theta1BaseRad = Math.PI + angle / 2; theta2BaseRad = Math.PI + angle / 2 + thetaArc;
+            theta3BaseRad = Math.PI / 2; theta4BaseRad = Math.PI / 2 + thetaArc;
+        } else if (r > a) {
+            theta1BaseRad = Math.PI + angle / 2; theta2BaseRad = Math.PI + angle / 2 + thetaArc;
+            theta3BaseRad = Math.PI / 2 - beta; theta4BaseRad = Math.PI / 2 - beta + thetaArc;
+        } else { console.warn(`r<a 不能形成花瓣`); return [null, null]; }
+        let theta1, theta2, theta3, theta4, rotationForArc;
+        if (useDegree) {
+            theta1 = (theta1BaseRad * 180) / Math.PI; theta2 = (theta2BaseRad * 180) / Math.PI;
+            theta3 = (theta3BaseRad * 180) / Math.PI; theta4 = (theta4BaseRad * 180) / Math.PI;
+            rotationForArc = rotation;
+        } else {
+            theta1 = theta1BaseRad; theta2 = theta2BaseRad; theta3 = theta3BaseRad; theta4 = theta4BaseRad;
+            rotationForArc = rotationRad;
+        }
+        const arc1 = arc({ r, angle1: theta1, angle2: theta2, rotation: rotationForArc, color, alpha, center: center1, points, lineWidth, useDegree, direction });
+        const arc2 = arc({ r, angle1: theta3, angle2: theta4, rotation: rotationForArc, color, alpha, center: center2, points, lineWidth, useDegree, direction });
+        return [arc1, arc2];
+    }
+
+    function flower({ R = 1, r = 1, n = 4, N = 12, rotation = 0, color = "#0f0", alpha = 1, center = [0, 0], points = 1000, lineWidth = 1, useDegree = false, direction = "ccw" } = {}) {
+        const paths = [];
+        for (let i = 0; i < N; i++) {
+            const petalRot = useDegree ? rotation + (i * 360) / N + 90 : (i * 2 * Math.PI) / N + Math.PI / 2;
+            const petals = flowerPetal({ R, r, n, rotation: petalRot, color, alpha, center, points, lineWidth, useDegree, direction });
+            if (petals[0]) paths.push(...petals);
+        }
+        return paths;
+    }
+
+    function flowers({ R = 1, r = 1, n = 4, ratio = Math.sqrt(2), M = 3, N = 12, color = "b", alpha = 1, theta = 0, center = [0, 0], points = 1000, lineWidth = 1, useDegree = false, direction = "ccw" } = {}) {
+        const paths = [];
+        for (let j = 1; j <= M; j++) {
+            for (let i = 0; i < N; i++) {
+                const petalRot = (2 * i * Math.PI) / N + ((j - 1) * Math.PI) / N + theta + Math.PI / 2;
+                const petals = flowerPetal({ R: R * Math.pow(ratio, j - 1), r: r * Math.pow(ratio, j - 1), n, rotation: petalRot, color, alpha, center, points, lineWidth, useDegree, direction });
+                if (petals[0]) paths.push(...petals);
+            }
+        }
+        return paths;
+    }
+
+    function ovalPetal({ a = 2, b = 1, d = 0.5, rotation = 0, rotByCenter = true, color = "#0f0", alpha = 1, center = [0, 0], points = 1000, lineWidth = 1, useDegree = true } = {}) {
+        const x0 = (b / (2 * a)) * Math.sqrt(4 * a * a - d * d) / (d / 2);
+        const beta = Math.atan(x0);
+        let betaB1 = Math.PI / 2 - beta, betaE1 = Math.PI / 2 + beta, betaB2 = 3 * Math.PI / 2 - beta, betaE2 = 3 * Math.PI / 2 + beta;
+        let rotationRad = useDegree ? (rotation * Math.PI) / 180 : rotation;
+        if (useDegree) {
+            betaB1 = (betaB1 * 180) / Math.PI; betaE1 = (betaE1 * 180) / Math.PI;
+            betaB2 = (betaB2 * 180) / Math.PI; betaE2 = (betaE2 * 180) / Math.PI;
+        }
+        const center1 = [center[0], center[1] - d / 2], center2 = [center[0], center[1] + d / 2];
+        const center1Rot = rotByCenter ? rotatePoint(center1, rotationRad) : rotatePoint([a, center[1] - d / 2], rotationRad);
+        const center2Rot = rotByCenter ? rotatePoint(center2, rotationRad) : rotatePoint([a, center[1] + d / 2], rotationRad);
+        const arc1 = ovalArc({ a, b, angle1: betaB1, angle2: betaE1, angle: rotation, color, alpha, center: center1Rot, points, lineWidth, useDegree });
+        const arc2 = ovalArc({ a, b, angle1: betaB2, angle2: betaE2, angle: rotation, color, alpha, center: center2Rot, points, lineWidth, useDegree });
+        return [arc1, arc2];
+    }
+
+    function ovalFlower({ a = 2, b = 1, d = 0.1, n = 12, rotation = 0, color = "#0f0", alpha = 1, center = [0, 0], points = 1000 } = {}) {
+        const paths = [];
+        for (let i = 0; i < n; i++) {
+            const petals = ovalPetal({ a, b, d, rotation: rotation + (i * 2 * Math.PI) / n, rotByCenter: true, color, alpha, center, points, useDegree: false });
+            if (petals[0]) paths.push(...petals);
+        }
+        return paths;
+    }
+
+    // Spirals 模块
+    function logSpiral({ n = 4, a = 1, b = 1, cyc = 0.5, color = "b", theta = 0, rotation = 0, direction = "both", alpha = 1, lineWidth = 1 } = {}) {
+        let tStart, tEnd;
+        if (direction === "both") { tStart = -cyc * 2 * Math.PI; tEnd = cyc * 2 * Math.PI; }
+        else if (direction === "out") { tStart = 0; tEnd = cyc * 2 * Math.PI; }
+        else { tStart = 0; tEnd = -cyc * 2 * Math.PI; }
+        const points = 1000, pathData = [];
+        for (let i = 0; i <= points; i++) {
+            const t = tStart + ((tEnd - tStart) * i) / points;
+            const r = Math.pow(Math.cos(Math.PI / n), (-n * t) / Math.PI);
+            const ang = t + theta + rotation;
+            const x = a * r * Math.cos(ang), y = b * r * Math.sin(ang);
+            pathData.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
+        }
+        return { type: "logSpiral", d: pathData.join(" "), fill: "none", stroke: color, "stroke-width": lineWidth, "stroke-opacity": alpha };
+    }
+
+    function nSpiralRotate({ n, cyc, color, alpha = 0, theta = 0 } = {}) {
+        const paths = [];
+        for (let i = 0; i < n; i++) {
+            paths.push(logSpiral({ n, a: 1, b: 1, cyc, color, theta: alpha + theta + (i * 2 * Math.PI) / n, lineWidth: 1 }));
+            paths.push(logSpiral({ n, a: -1, b: 1, cyc, color, theta: alpha - theta + (i * 2 * Math.PI) / n, lineWidth: 1 }));
+        }
+        return paths;
+    }
+
+    function callaByPetal({ n, cyc, N, theta, colors } = {}) {
+        const paths = [];
+        for (let i = 0; i < N; i++) {
+            const t1 = logSpiral({ n, a: 1, b: 1, cyc: cyc * 1.25, color: colors[i % colors.length], theta: theta + (i * 2 * Math.PI) / N, lineWidth: 1 });
+            const t2 = logSpiral({ n, a: -1, b: 1, cyc: cyc * 1.25, color: colors[i % colors.length], theta: -theta + (i * 2 * Math.PI) / N, lineWidth: 1 });
+            paths.push(t1, t2);
+        }
+        return paths;
+    }
+
+    // Waves 模块
+    function wave({ A = 1, F = 3, P = 12, rotation = 0, mode = "geometric", direction = "both", color = "#0f0", alpha = 1, R = 1, center = [0, 0], points = 1000, lineWidth = 1, showCenter = true } = {}) {
+        const paths = [];
+        for (let i = 0; i <= P; i++) {
+            const circleCenter = [center[0] + Math.cos((i * 2 * Math.PI) / P + Math.PI / 2 + rotation), center[1] + Math.sin((i * 2 * Math.PI) / P + Math.PI / 2 + rotation)];
+            const circles = concentricCircles({ center: circleCenter, n: F, radius: R, param: A, mode, direction, color, alpha, points, lineWidth, showCenter });
+            paths.push(...circles);
+        }
+        return paths;
+    }
+
+    function waveAri({ A = 1, F = 3, P = 12, rotation = 0, direction = "both", color = "#0f0", alpha = 1, R = 1, center = [0, 0], points = 1000, lineWidth = 1, showCenter = true } = {}) {
+        return wave({ A, F, P, rotation, direction, color, alpha, R, center, points, lineWidth, showCenter, mode: "arithmetic" });
+    }
+
+    function waveGeo({ A = 1, F = 3, P = 12, rotation = 0, direction = "both", color = "#0f0", alpha = 1, R = 1, center = [0, 0], points = 1000, lineWidth = 1, showCenter = true } = {}) {
+        return wave({ A, F, P, rotation, direction, color, alpha, R, center, points, lineWidth, showCenter, mode: "geometric" });
+    }
+
+    // 辅助函数
+    function createSVG(viewBox = "0 0 100 100", bg = "white") {
+        return `<svg viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg" style="background:${bg};">`;
+    }
+
+    function pathsToSVG(paths) {
+        let svg = "";
+        for (const path of paths) {
+            if (path.type === "center") svg += `<circle cx="${path.cx}" cy="${path.cy}" r="${path.r}" fill="${path.fill}"/>`;
+            else if (path.d) svg += `<path d="${path.d}" fill="${path.fill || "none"}" stroke="${path.stroke}" stroke-width="${path["stroke-width"]}" stroke-opacity="${path["stroke-opacity"]}"/>`;
+        }
+        return svg;
+    }
+
+    function toSVG(paths, viewBox = "-3 -3 6 6", bg = "#10101a") {
+        return `${createSVG(viewBox, bg)}${pathsToSVG(paths)}</svg>`;
+    }
+
+    // === 测试代码 ===
+
+    // 1. Circles 测试
+    document.getElementById('circle-canvas').innerHTML = toSVG([circle({ radius: 2, color: "#00ff00", center: [0, 0], points: 100 })], "-3 -3 6 6", "#10101a");
+    document.getElementById('ellipse-canvas').innerHTML = toSVG([ellipse({ a: 2, b: 1, rotation: 30, color: "#ff00ff", center: [0, 0] })], "-3 -3 6 6", "#10101a");
+    document.getElementById('concentric-canvas').innerHTML = toSVG(concentricCircles({ center: [0, 0], n: 5, radius: 1, param: 0.3, mode: "arithmetic", direction: "both", color: "#00ccff" }), "-3 -3 6 6", "#10101a");
+
+    // 2. Arcs 测试
+    document.getElementById('arc-canvas').innerHTML = toSVG([arc({ r: 2, angle1: 0, angle2: 90, color: "#00ffff", center: [0, 0] })], "-3 -3 6 6", "#10101a");
+    document.getElementById('arcpoint-canvas').innerHTML = toSVG([arcPoint({ center: [0, 0], point1: [2, 0], point2: [0, 2], color: "#ffff00" })], "-3 -3 6 6", "#10101a");
+    document.getElementById('ovalarc-canvas').innerHTML = toSVG([ovalArc({ a: 2, b: 1, angle1: 0, angle2: 180, angle: 30, color: "#ff9900" })], "-3 -3 6 6", "#10101a");
+
+    // 3. Flowers 测试
+    document.getElementById('flower-canvas').innerHTML = toSVG(flower({ R: 2, r: 2, n: 4, N: 8, color: "#ff66cc" }), "-3 -3 6 6", "#10101a");
+    document.getElementById('flowers-canvas').innerHTML = toSVG(flowers({ R: 1, r: 1, n: 4, ratio: Math.sqrt(2), M: 3, N: 12, color: "#66ccff" }), "-4 -4 8 8", "#10101a");
+    document.getElementById('ovalflower-canvas').innerHTML = toSVG(ovalFlower({ a: 2, b: 1, d: 0.3, n: 8, color: "#99ff99" }), "-3 -3 6 6", "#10101a");
+
+    // 4. Spirals 测试
+    document.getElementById('logspiral-canvas').innerHTML = toSVG([logSpiral({ n: 4, cyc: 2, color: "#ff6600", direction: "both" })], "-4 -4 8 8", "#10101a");
+    document.getElementById('nspiral-canvas').innerHTML = toSVG(nSpiralRotate({ n: 4, cyc: 1.5, color: "#cc66ff" }), "-4 -4 8 8", "#10101a");
+    document.getElementById('calla-canvas').innerHTML = toSVG(callaByPetal({ n: 4, cyc: 1.5, N: 5, theta: 0, colors: ["#ff6666", "#66ff66", "#6666ff", "#ffff66", "#ff66ff"] }), "-3 -3 6 6", "#10101a");
+
+    // 5. Waves 测试
+    document.getElementById('wave-canvas').innerHTML = toSVG(wave({ A: 0.3, F: 2, P: 8, mode: "geometric", color: "#00ccff" }), "-3 -3 6 6", "#10101a");
+    document.getElementById('waveari-canvas').innerHTML = toSVG(waveAri({ A: 0.2, F: 3, P: 12, color: "#ff9966" }), "-3 -3 6 6", "#10101a");
+    document.getElementById('wavegeo-canvas').innerHTML = toSVG(waveGeo({ A: 1.5, F: 2, P: 10, color: "#99cc33" }), "-4 -4 8 8", "#10101a");
+
+    // 6. 综合测试
+    const comboPaths = [];
+    comboPaths.push(...concentricCircles({ center: [0, 0], n: 3, radius: 0.5, param: 0.5, color: "#336699" }));
+    comboPaths.push(...flower({ R: 1.5, r: 1.5, n: 4, N: 12, color: "#ff6699" }));
+    comboPaths.push(...nSpiralRotate({ n: 4, cyc: 1, color: "#99ff99" }));
+    document.getElementById('combination-canvas').innerHTML = toSVG(comboPaths, "-4 -4 8 8", "#10101a");
+
+    console.log("CPR_js1 所有测试完成!");
+    </script>
+</body>
+</html>

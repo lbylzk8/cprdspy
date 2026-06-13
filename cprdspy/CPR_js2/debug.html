@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Arc</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+    <div id="plot1"></div>
+    <div id="plot2"></div>
+
+    <script type="module">
+        import { arc } from './Arcs/arc.js';
+        import { flowerPetal, flower } from './Flowers/flower.js';
+
+        // 测试 arc 函数
+        const r = 1;
+        const angle1 = 5 * Math.PI / 4;
+        const angle2 = 7 * Math.PI / 4;
+        const rotation = Math.PI / 2;
+        const center1 = [-0.7071067811865475, 0.7071067811865476];
+
+        console.log('arc params:', { r, angle1, angle2, rotation, center1 });
+
+        const trace1 = arc({
+            r, angle1, angle2, rotation,
+            color: '#00ff88',
+            center: center1,
+            useDegree: false,
+            lineWidth: 2,
+        });
+
+        console.log('trace1:', trace1);
+        console.log('trace1 x range:', [Math.min(...trace1.x), Math.max(...trace1.x)]);
+        console.log('trace1 y range:', [Math.min(...trace1.y), Math.max(...trace1.y)]);
+
+        // 测试 flowerPetal
+        const petals = flowerPetal({
+            R: 1, r: 1, n: 4, rotation: Math.PI / 2,
+            color: '#ff0000',
+            useDegree: false,
+        });
+
+        console.log('petals:', petals);
+        if (petals[0]) {
+            console.log('petal[0] x range:', [Math.min(...petals[0].x), Math.max(...petals[0].x)]);
+            console.log('petal[0] y range:', [Math.min(...petals[0].y), Math.max(...petals[0].y)]);
+        }
+        if (petals[1]) {
+            console.log('petal[1] x range:', [Math.min(...petals[1].x), Math.max(...petals[1].x)]);
+            console.log('petal[1] y range:', [Math.min(...petals[1].y), Math.max(...petals[1].y)]);
+        }
+
+        // 绘制
+        const layout = {
+            width: 500,
+            height: 500,
+            xaxis: { scaleanchor: 'y', scaleratio: 1, range: [-3, 3] },
+            yaxis: { range: [-3, 3] }
+        };
+
+        Plotly.newPlot('plot1', [trace1], { ...layout, title: 'Single Arc' }, { displayModeBar: false });
+
+        if (petals[0] && petals[1]) {
+            Plotly.newPlot('plot2', [petals[0], petals[1]], { ...layout, title: 'Flower Petal' }, { displayModeBar: false });
+        }
+    </script>
+</body>
+</html>

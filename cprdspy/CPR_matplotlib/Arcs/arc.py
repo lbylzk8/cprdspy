@@ -367,6 +367,110 @@ def arc_dot_inverse(
     )
 
 
+# 中心旋转弧
+def arc_rotate(
+    r=1,
+    angle1=45,
+    angle2=135,
+    rotation=0,
+    color="#0f0",
+    alpha=1,
+    center=(0, 0),
+    points=1000,
+    linestyle="-",
+    linewidth=1,
+    label=None,
+    marker=None,
+    markersize=6,
+    markerfacecolor=None,
+    markeredgecolor="k",
+    markeredgewidth=1,
+    ax=None,
+    use_degree=True,
+    plot=True,
+    direction="ccw",
+    return_arc=False,
+    **kwargs,
+):
+    """
+    绘制一段弧，其 angle2 端固定在 center，并可绕原点旋转。
+
+    Parameters
+    ----------
+    r : float
+        弧的半径。
+    angle1, angle2 : float
+        弧的起始角/终止角。use_degree=True 时为度数，否则为弧度。
+    rotation : float
+        绕原点旋转的角度。use_degree=True 时为度数，否则为弧度。
+    center : tuple
+        弧的 angle2 端点放置位置（即旋转后该点保持不动的前提是 center=(0,0)）。
+    use_degree : bool
+        True 表示 angle1/angle2/rotation 使用角度制，False 使用弧度制。
+    plot : bool
+        False 时返回旋转后的 (x, y) 数据而不绘图。
+    return_arc : bool
+        True 时返回 matplotlib Line2D 对象而非 None。
+    """
+    # ---------- 1. 角度制 → 弧度 ----------
+    if use_degree:
+        a1 = np.deg2rad(angle1)
+        a2 = np.deg2rad(angle2)
+        rot = np.deg2rad(rotation)
+    else:
+        a1 = angle1
+        a2 = angle2
+        rot = rotation
+
+    # ---------- 2. 将弧的 a2 端点平移到 center ----------
+    # circle 中心 = center - r*(cos(a2), sin(a2))，使圆弧在 a2 处恰好落在 center
+    arc_center = (center[0] - r * np.cos(a2), center[1] - r * np.sin(a2))
+
+    x, y = arc(
+        r=r,
+        angle1=a1,
+        angle2=a2,
+        rotation=0,
+        center=arc_center,
+        points=points,
+        use_degree=False,  # 已转为弧度
+        plot=False,
+        direction=direction,
+        **kwargs,
+    )
+
+    # ---------- 3. 绕原点旋转 ----------
+    x_rot = x * np.cos(rot) - y * np.sin(rot)
+    y_rot = x * np.sin(rot) + y * np.cos(rot)
+
+    if not plot:
+        return x_rot, y_rot
+
+    # ---------- 4. 绘图 ----------
+    if ax is None:
+        ax = plt.gca()
+    arc_line = ax.plot(
+        x_rot,
+        y_rot,
+        color=color,
+        alpha=alpha,
+        linestyle=linestyle,
+        linewidth=linewidth,
+        label=label,
+        marker=marker,
+        markersize=markersize,
+        markerfacecolor=markerfacecolor,
+        markeredgecolor=markeredgecolor,
+        markeredgewidth=markeredgewidth,
+        **kwargs,
+    )
+    ax.axis("equal")
+    if label:
+        ax.legend()
+    if return_arc:
+        return arc_line[0] if arc_line else None
+
+
 # 椭圆弧
 def oval_arc(
     a=2,

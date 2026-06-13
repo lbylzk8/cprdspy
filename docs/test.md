@@ -1,8 +1,6 @@
 在 Matplotlib 中绘制超椭圆（Superellipse）图像可以通过参数方程来实现。超椭圆的数学定义如下：
 $$
-
 \left|\frac{x}{a}\right|^n + \left|\frac{y}{b}\right|^n = 1\\
-
 (\frac{x}{a})^n + (\frac{y}{b})^n = 1\\
 {((\frac{x}{a})^{n/2} )}^2+ ((\frac{y}{b})^{n/2})^2= 1\\
 令\cos\theta=(\frac{x}{a})^{n/2} 和\sin\theta=(\frac{y}{b})^{n/2}，则超椭圆的参数方程为：\\

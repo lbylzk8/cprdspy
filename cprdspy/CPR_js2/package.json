@@ -1,0 +1,24 @@
+{
+  "name": "cpr-js2",
+  "version": "1.0.0",
+  "description": "CPR 图形库 - Plotly.js 版本",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Open test.html in browser\" && exit 0"
+  },
+  "keywords": [
+    "cpr",
+    "plotly",
+    "visualization",
+    "geometry",
+    "spirals",
+    "flowers",
+    "waves"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "plotly.js": "^2.27.0"
+  }
+}

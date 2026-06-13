@@ -119,6 +119,77 @@ from .CPR_plotly.Waves.wave_config import (
     wave_circle_pro,
 )
 
+from .CPR_matplotlib.Flowers.flower import (
+    flower as flower_mpl,
+    flowers as flowers_mpl,
+    flower_petal as flower_petal_mpl,
+    oval_petal as oval_petal_mpl,
+    oval_petal_a as oval_petal_a_mpl,
+    oval_flower as oval_flower_mpl,
+    oval_flower_a as oval_flower_a_mpl,
+)
+from .CPR_matplotlib.Waves.waves import (
+    wave as wave_mpl,
+    wave_wave as wave_wave_mpl,
+    wave_ari as wave_ari_mpl,
+    wave_geo as wave_geo_mpl,
+)
+
+from .CPR_matplotlib.Circles.circle import (
+    circle as circle_mpl,
+    draw_circle as draw_circle_mpl,
+    circle_p as circle_p_mpl,
+    ellipse as ellipse_mpl,
+    concentric_circles as concentric_circles_mpl,
+    concentric_ellipse as concentric_ellipse_mpl,
+)
+
+from .CPR_matplotlib.Arcs.arc import (
+    arc_point as arc_point_mpl,
+    arc_point_inverse as arc_point_inverse_mpl,
+    arc as arc_mpl,
+    arc_inverse as arc_inverse_mpl,
+    arc_dot as arc_dot_mpl,
+    arc_dot_inverse as arc_dot_inverse_mpl,
+    oval_arc as oval_arc_mpl,
+    arc_rotate as arc_rotate_mpl,
+)
+
+from .CPR_matplotlib.Spirals.spiral import (
+    logSpiral as logSpiral_mpl,
+    nSpiral as nSpiral_mpl,
+    nSpirals as nSpirals_mpl,
+    calla_petal as calla_petal_mpl,
+    calla as calla_mpl,
+)
+
+from .CPR_matplotlib.Dots.dot import (
+    Dots as Dots_mpl,
+    n_dots as n_dots_mpl,
+    draw_dots as draw_dots_mpl,
+    n_dots_array as n_dots_array_mpl,
+    draw_n_dots_array as draw_n_dots_array_mpl,
+)
+
+from .CPR_matplotlib.Lines.line import (
+    Lines as Lines_mpl,
+    connect as connect_mpl,
+    connect_all as connect_all_mpl,
+    multi_polygon as multi_polygon_mpl,
+    metatron_cube as metatron_cube_mpl,
+    krystal_cube as krystal_cube_mpl,
+    swastika as swastika_mpl,
+    swastika_lines as swastika_lines_mpl,
+    draw_lines as draw_lines_mpl,
+    draw_multi_polygon as draw_multi_polygon_mpl,
+    draw_metatron_cube as draw_metatron_cube_mpl,
+    draw_krystal_cube as draw_krystal_cube_mpl,
+    draw_swastika as draw_swastika_mpl,
+    draw_swastikas as draw_swastikas_mpl,
+)
+
+from .CPR_matplotlib.Stars.star import star as star_mpl, stars as stars_mpl
+
 # 导出所有公开API
 __all__ = [
     # 全局配置
@@ -215,7 +286,66 @@ __all__ = [
     "wave_circle_pro_o",
     "wave_circle_pro_i",
     "wave_circle_pro",
+    # matplotlib版本的函数
+    # 圆形模块
+    "circle_mpl",
+    "draw_circle_mpl",
+    "circle_p_mpl",
+    "ellipse_mpl",
+    "concentric_circles_mpl",
+    "concentric_ellipse_mpl",
+    # 弧线模块 (matplotlib)
+    "arc_point_mpl",
+    "arc_point_inverse_mpl",
+    "arc_mpl",
+    "arc_inverse_mpl",
+    "arc_dot_mpl",
+    "arc_dot_inverse_mpl",
+    "oval_arc_mpl",
+    "arc_rotate_mpl",
+    # 螺旋线模块 (matplotlib)
+    "logSpiral_mpl",
+    "nSpiral_mpl",
+    "nSpirals_mpl",
+    "calla_petal_mpl",
+    "calla_mpl",
+    # 点阵模块 (matplotlib)
+    "Dots_mpl",
+    "n_dots_mpl",
+    "draw_dots_mpl",
+    "n_dots_array_mpl",
+    "draw_n_dots_array_mpl",
+    # 线条模块 (matplotlib)
+    "Lines_mpl",
+    "connect_mpl",
+    "connect_all_mpl",
+    "multi_polygon_mpl",
+    "metatron_cube_mpl",
+    "krystal_cube_mpl",
+    "swastika_mpl",
+    "swastika_lines_mpl",
+    "draw_lines_mpl",
+    "draw_multi_polygon_mpl",
+    "draw_metatron_cube_mpl",
+    "draw_krystal_cube_mpl",
+    "draw_swastika_mpl",
+    "draw_swastikas_mpl",
+    # 花朵模块
+    "flower_mpl",
+    "flowers_mpl",
+    "flower_petal_mpl",
+    "oval_petal_mpl",
+    "oval_petal_a_mpl",
+    "oval_flower_mpl",
+    "oval_flower_a_mpl",
+    # 星形模块 (matplotlib)
+    "star_mpl",
+    "stars_mpl",
+    # 波形模块
+    "wave_mpl",
+    "wave_wave_mpl",
+    "wave_ari_mpl",
+    "wave_geo_mpl",
 ]
-
 # 版本信息
-__version__ = "0.1.0"
+__version__ = "0.3.0"

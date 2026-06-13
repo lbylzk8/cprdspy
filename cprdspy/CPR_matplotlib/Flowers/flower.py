@@ -215,7 +215,7 @@ def flower(
             (
                 rotation + i * 360 / N + 90
                 if use_degree
-                else i * 2 * np.pi / N + np.pi / 2
+                else rotation + i * 2 * np.pi / N + np.pi / 2
             ),
             color,
             alpha,
@@ -274,13 +274,16 @@ def flowers(
     return_flower=False,
     **kwargs,
 ):
+    # 统一转为弧度，后续统一用弧度传给 flower_petal
+    theta_rad = np.deg2rad(theta) if use_degree else theta
+
     for j in range(1, M + 1):
         for i in range(0, N):
             flower_petal(
                 R * (ratio ** (j - 1)),
                 r * (ratio ** (j - 1)),
                 n,
-                2 * i * np.pi / N + (j - 1) * np.pi / N + theta + np.pi / 2,
+                2 * i * np.pi / N + (j - 1) * np.pi / N + theta_rad + np.pi / 2,
                 color,
                 alpha,
                 center,
@@ -297,7 +300,7 @@ def flowers(
                 plot_center,
                 center_color,
                 center_size,
-                use_degree,
+                False,  # rotation 已是弧度，通知 flower_petal 不要再转
                 plot,
                 direction,
                 return_flower,
@@ -325,9 +328,14 @@ def rotate_point(point, theta):
     return (x_new, y_new)
 
 
-def oval_petal_a(a, b, d, rotation=0, color="b", alpha=1, center=(0, 0), points=1000):
+def oval_petal_a(a, b, d, rotation=0, use_degree=True, color="b", alpha=1, center=(0, 0), points=1000):
+    """椭圆花瓣（简化版）。
+
+    rotation (float): 旋转角度（度或弧度取决于 use_degree）。
+    use_degree (bool): rotation 是否使用角度制，默认 True（度）。
+    """
+    rotation_rad = np.deg2rad(rotation) if use_degree else rotation
     x0 = b / (2 * a) * np.sqrt(4 * a**2 - d**2) / (d / 2)
-    # x0=a/(2*b)*np.sqrt(4*(b)**2-d**2)/(d/2)
     beta = np.arctan(x0)
     beta_b1 = np.pi / 2 - beta
     beta_e1 = np.pi / 2 + beta
@@ -335,31 +343,19 @@ def oval_petal_a(a, b, d, rotation=0, color="b", alpha=1, center=(0, 0), points=
     beta_e2 = 3 * np.pi / 2 + beta
     center1 = (center[0], center[1] - d / 2)
     center2 = (center[0], center[1] + d / 2)
-    center1_rot = rotate_point((a, center[1] - d / 2), rotation)
-    center2_rot = rotate_point((a, center[1] + d / 2), rotation)
+    center1_rot = rotate_point((a, center[1] - d / 2), rotation_rad)
+    center2_rot = rotate_point((a, center[1] + d / 2), rotation_rad)
     oval_arc(
-        a,
-        b,
-        beta_b1,
-        beta_e1,
-        angle=rotation,
-        color=color,
-        alpha=alpha,
-        center=center1_rot,
-        points=points,
-        use_degree=False,
+        a, b, beta_b1, beta_e1,
+        angle=rotation,  # oval_arc 内部自己处理 use_degree
+        color=color, alpha=alpha, center=center1_rot, points=points,
+        use_degree=use_degree,
     )
     oval_arc(
-        a,
-        b,
-        beta_b2,
-        beta_e2,
+        a, b, beta_b2, beta_e2,
         angle=rotation,
-        color=color,
-        alpha=alpha,
-        center=center2_rot,
-        points=points,
-        use_degree=False,
+        color=color, alpha=alpha, center=center2_rot, points=points,
+        use_degree=use_degree,
     )
 
 
@@ -529,36 +525,40 @@ Oval Flower Algorithm
 
 
 def oval_flower(
-    a=2, b=1, d=0.1, n=12, rotation=0, color="#0f0", alpha=1, center=(0, 0), points=1000
+    a=2, b=1, d=0.1, n=12, rotation=0, use_degree=True,
+    color="#0f0", alpha=1, center=(0, 0), points=1000,
 ):
+    """椭圆花瓣花朵。
+
+    rotation (float): 旋转角度（度或弧度取决于 use_degree）。
+    use_degree (bool): rotation 是否使用角度制，默认 True（度）。
+    """
+    rotation_rad = np.deg2rad(rotation) if use_degree else rotation
     for i in range(n):
         oval_petal(
-            a,
-            b,
-            d,
-            rotation + i * 2 * np.pi / n,
-            1,
-            color,
-            alpha,
-            center,
-            points,
-            use_degree=False,
+            a, b, d,
+            rotation_rad + i * 2 * np.pi / n,
+            1,  # rot_by_center
+            color, alpha, center, points,
+            use_degree=False,  # 内部已经转为弧度
         )
 
 
 def oval_flower_a(
-    a=2, b=1, d=0.1, n=12, rotation=0, color="#0f0", alpha=1, center=(0, 0), points=1000
+    a=2, b=1, d=0.1, n=12, rotation=0, use_degree=True,
+    color="#0f0", alpha=1, center=(0, 0), points=1000,
 ):
+    """椭圆花瓣花朵（旋转模式 a）。
+
+    rotation (float): 旋转角度（度或弧度取决于 use_degree）。
+    use_degree (bool): rotation 是否使用角度制，默认 True（度）。
+    """
+    rotation_rad = np.deg2rad(rotation) if use_degree else rotation
     for i in range(n):
         oval_petal(
-            a,
-            b,
-            d,
-            rotation + i * 2 * np.pi / n,
-            False,
-            color,
-            alpha,
-            center,
-            points,
-            use_degree=False,
+            a, b, d,
+            rotation_rad + i * 2 * np.pi / n,
+            False,  # rot_by_center
+            color, alpha, center, points,
+            use_degree=False,  # 内部已经转为弧度
         )

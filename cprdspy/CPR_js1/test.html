@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPR_js1 模块测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #888;
+        }
+        .test-section {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .canvas-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .canvas-item {
+            background: #0f0f23;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .canvas-item svg {
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .canvas-item p {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00ff88;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        input[type="range"] {
+            width: 100px;
+        }
+        select {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 5px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CPR_js1 模块测试</h1>
+    <p class="subtitle">JavaScript 版本的 CPR 图形库测试页面</p>
+
+    <!-- 1. Circles 模块测试 -->
+    <div class="test-section">
+        <h2>1. Circles 模块 - 圆形和椭圆</h2>
+        <div class="canvas-container">
+            <div class="canvas-item">
+                <div id="circle-canvas"></div>
+                <p>circle - 圆形</p>
+            </div>
+            <div class="canvas-item">
+                <div id="ellipse-canvas"></div>
+                <p>ellipse - 椭圆 (旋转 30°)</p>
+            </div>
+            <div class="canvas-item">
+                <div id="concentric-canvas"></div>
+                <p>concentricCircles - 同心圆</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Arcs 模块测试 -->
+    <div class="test-section">
+        <h2>2. Arcs 模块 - 圆弧和椭圆弧</h2>
+        <div class="canvas-container">
+            <div class="canvas-item">
+                <div id="arc-canvas"></div>
+                <p>arc - 圆弧 (0-90°)</p>
+            </div>
+            <div class="canvas-item">
+                <div id="arcpoint-canvas"></div>
+                <p>arcPoint - 通过两点画弧</p>
+            </div>
+            <div class="canvas-item">
+                <div id="ovalarc-canvas"></div>
+                <p>ovalArc - 椭圆弧</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Flowers 模块测试 -->
+    <div class="test-section">
+        <h2>3. Flowers 模块 - 花朵图案</h2>
+        <div class="canvas-container">
+            <div class="canvas-item">
+                <div id="flower-canvas"></div>
+                <p>flower - 单层花 (8 瓣)</p>
+            </div>
+            <div class="canvas-item">
+                <div id="flowers-canvas"></div>
+                <p>flowers - 多层花</p>
+            </div>
+            <div class="canvas-item">
+                <div id="ovalflower-canvas"></div>
+                <p>ovalFlower - 椭圆花</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Spirals 模块测试 -->
+    <div class="test-section">
+        <h2>4. Spirals 模块 - 螺旋线</h2>
+        <div class="canvas-container">
+            <div class="canvas-item">
+                <div id="logspiral-canvas"></div>
+                <p>logSpiral - 对数螺线</p>
+            </div>
+            <div class="canvas-item">
+                <div id="nspiral-canvas"></div>
+                <p>nSpiralRotate - 旋转螺旋</p>
+            </div>
+            <div class="canvas-item">
+                <div id="calla-canvas"></div>
+                <p>callaByPetal - 马蹄莲</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Waves 模块测试 -->
+    <div class="test-section">
+        <h2>5. Waves 模块 - 波形图案</h2>
+        <div class="canvas-container">
+            <div class="canvas-item">
+                <div id="wave-canvas"></div>
+                <p>wave - 波形</p>
+            </div>
+            <div class="canvas-item">
+                <div id="waveari-canvas"></div>
+                <p>waveAri - 等差波</p>
+            </div>
+            <div class="canvas-item">
+                <div id="wavegeo-canvas"></div>
+                <p>waveGeo - 等比波</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. 综合测试 -->
+    <div class="test-section">
+        <h2>6. 综合测试 - 组合图案</h2>
+        <div class="canvas-container">
+            <div class="canvas-item" style="width: 100%;">
+                <div id="combination-canvas"></div>
+                <p>组合图案 - 同心圆 + 花朵 + 螺旋</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            circle, ellipse, concentricCircles,
+            arc, arcPoint, ovalArc,
+            flower, flowers, ovalFlower,
+            logSpiral, nSpiralRotate, callaByPetal,
+            wave, waveAri, waveGeo,
+            renderSVG, pathsToSVG, createSVG
+        } from './index.js';
+
+        // 辅助函数：生成 SVG
+        function toSVG(paths, viewBox = "-3 -3 6 6", bg = "#10101a") {
+            return `${createSVG(viewBox, bg)}${pathsToSVG(paths)}</svg>`;
+        }
+
+        // 1. Circles 测试
+        document.getElementById('circle-canvas').innerHTML = toSVG([
+            circle({ radius: 2, color: "#00ff00", center: [0, 0], points: 100 })
+        ], "-3 -3 6 6", "#10101a");
+
+        document.getElementById('ellipse-canvas').innerHTML = toSVG([
+            ellipse({ a: 2, b: 1, rotation: 30, color: "#ff00ff", center: [0, 0] })
+        ], "-3 -3 6 6", "#10101a");
+
+        document.getElementById('concentric-canvas').innerHTML = toSVG(
+            concentricCircles({
+                center: [0, 0],
+                n: 5,
+                radius: 1,
+                param: 0.3,
+                mode: "arithmetic",
+                direction: "both",
+                color: "#00ccff"
+            }),
+            "-3 -3 6 6", "#10101a"
+        );
+
+        // 2. Arcs 测试
+        document.getElementById('arc-canvas').innerHTML = toSVG([
+            arc({ r: 2, angle1: 0, angle2: 90, color: "#00ffff", center: [0, 0] })
+        ], "-3 -3 6 6", "#10101a");
+
+        document.getElementById('arcpoint-canvas').innerHTML = toSVG([
+            arcPoint({ center: [0, 0], point1: [2, 0], point2: [0, 2], color: "#ffff00" })
+        ], "-3 -3 6 6", "#10101a");
+
+        document.getElementById('ovalarc-canvas').innerHTML = toSVG([
+            ovalArc({ a: 2, b: 1, angle1: 0, angle2: 180, angle: 30, color: "#ff9900" })
+        ], "-3 -3 6 6", "#10101a");
+
+        // 3. Flowers 测试
+        document.getElementById('flower-canvas').innerHTML = toSVG(
+            flower({ R: 2, r: 2, n: 4, N: 8, color: "#ff66cc" }),
+            "-3 -3 6 6", "#10101a"
+        );
+
+        document.getElementById('flowers-canvas').innerHTML = toSVG(
+            flowers({ R: 1, r: 1, n: 4, ratio: Math.sqrt(2), M: 3, N: 12, color: "#66ccff" }),
+            "-4 -4 8 8", "#10101a"
+        );
+
+        document.getElementById('ovalflower-canvas').innerHTML = toSVG(
+            ovalFlower({ a: 2, b: 1, d: 0.3, n: 8, color: "#99ff99" }),
+            "-3 -3 6 6", "#10101a"
+        );
+
+        // 4. Spirals 测试
+        document.getElementById('logspiral-canvas').innerHTML = toSVG([
+            logSpiral({ n: 4, cyc: 2, color: "#ff6600", direction: "both" })
+        ], "-4 -4 8 8", "#10101a");
+
+        document.getElementById('nspiral-canvas').innerHTML = toSVG(
+            nSpiralRotate({ n: 4, cyc: 1.5, color: "#cc66ff" }),
+            "-4 -4 8 8", "#10101a"
+        );
+
+        document.getElementById('calla-canvas').innerHTML = toSVG(
+            callaByPetal({ n: 4, cyc: 1.5, N: 5, theta: 0, colors: ["#ff6666", "#66ff66", "#6666ff", "#ffff66", "#ff66ff"] }),
+            "-3 -3 6 6", "#10101a"
+        );
+
+        // 5. Waves 测试
+        document.getElementById('wave-canvas').innerHTML = toSVG(
+            wave({ A: 0.3, F: 2, P: 8, mode: "geometric", color: "#00ccff" }),
+            "-3 -3 6 6", "#10101a"
+        );
+
+        document.getElementById('waveari-canvas').innerHTML = toSVG(
+            waveAri({ A: 0.2, F: 3, P: 12, color: "#ff9966" }),
+            "-3 -3 6 6", "#10101a"
+        );
+
+        document.getElementById('wavegeo-canvas').innerHTML = toSVG(
+            waveGeo({ A: 1.5, F: 2, P: 10, color: "#99cc33" }),
+            "-4 -4 8 8", "#10101a"
+        );
+
+        // 6. 综合测试
+        const comboPaths = [];
+        comboPaths.push(...concentricCircles({
+            center: [0, 0], n: 3, radius: 0.5, param: 0.5, color: "#336699"
+        }));
+        comboPaths.push(...flower({ R: 1.5, r: 1.5, n: 4, N: 12, color: "#ff6699" }));
+        comboPaths.push(...nSpiralRotate({ n: 4, cyc: 1, color: "#99ff99" }));
+
+        document.getElementById('combination-canvas').innerHTML = toSVG(
+            comboPaths,
+            "-4 -4 8 8", "#10101a"
+        );
+
+        console.log("CPR_js1 所有测试完成!");
+    </script>
+</body>
+</html>

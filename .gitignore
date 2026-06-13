@@ -4,7 +4,6 @@ __pycache__/
 build/
 dist/
 wheels/
-images/
 .history/
 *.egg-info
 examples/images/

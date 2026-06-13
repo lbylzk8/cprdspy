@@ -11,7 +11,7 @@ def get_long_description():
 
 setup(
     name="cprdspy",
-    version="0.2.3",  # 版本号递增
+    version="0.3.0",  # 版本号递增
     packages=find_packages(exclude=["tests*"]),
     include_package_data=True,
     install_requires=[
