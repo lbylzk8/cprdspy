@@ -1,0 +1,714 @@
+# CPR：基于旋转器组合的几何编程语言理论
+
+## V0.2 增补章节：几何对象与运动原语的类型系统
+
+### 37. 为什么 CPR 需要独立的几何对象语义
+
+CPR 的核心思想是用简单运动组合生成复杂几何。但是，“生成一个几何对象”与“描述一个运动过程”并不是同一件事。
+
+例如，以下三个概念必须区分：
+
+- 圆：一个完整的几何对象。
+- 圆周运动：一个随参数变化的运动过程。
+- 圆弧：圆周上受到参数范围限制的一段轨迹。
+
+即使三个概念可以使用相似的数学表达式，它们的类型、操作和语义也不相同。
+
+因此，CPR 不应把所有几何都压缩为 Rotor，也不应要求所有对象都能直接表示为 Clifford 代数中的单一元素。
+
+我们提出以下设计原则：
+
+> **CPR 的语言层负责定义几何对象的语义；运动原语负责生成轨迹；代数后端负责实现适合其数学结构的运算。**
+
+这一原则将 CPR 分成三个相互协作的部分：
+
+1. **几何语义层**：定义点、向量、曲线、弧、曲面等对象。
+2. **运动生成层**：定义 Rotor、运动组合、轨迹生成与参数化。
+3. **计算后端层**：使用复数、四元数、Clifford 代数、CGA、数值几何算法等完成具体计算。
+
+### 38. CPR 的基础类型系统
+
+CPR 的基础类型暂定如下：
+
+| 类型          | 数学含义             | 核心职责                   |
+| ------------- | -------------------- | -------------------------- |
+| `Scalar`      | 标量                 | 长度、角度、频率等数值     |
+| `Vector`      | 向量空间元素         | 位移、方向、速度           |
+| `Point`       | 仿射空间中的点       | 表示空间位置               |
+| `Transform`   | 几何变换             | 移动、旋转、缩放、仿射映射 |
+| `MotionRotor` | 参数化的旋转运动原语 | 生成旋转轨迹分量           |
+| `Curve`       | 参数化曲线           | 表示连续轨迹               |
+| `Arc`         | 有界曲线段           | 表示曲线的一段             |
+| `Surface`     | 参数化曲面           | 表示二维参数域上的几何     |
+| `Solid`       | 三维实体             | 表示具有内部与边界的实体   |
+
+这些类型不是彼此孤立的。它们通过明确的构造关系连接起来：
+
+\[
+\text{Scalar, Vector, Point}
+\longrightarrow
+\text{MotionRotor, Transform}
+\longrightarrow
+\text{Curve}
+\longrightarrow
+\text{Arc, Surface, Solid}.
+\]
+
+这里的箭头表示常见的构造关系，而不是说所有曲线、曲面和实体都只能通过 Rotor 构造。
+
+### 39. Point 与 Vector：位置和位移必须分离
+
+设 \(E^n\) 为 \(n\) 维欧氏仿射空间，其对应的位移向量空间为 \(V^n\)。
+
+点属于 \(E^n\)，向量属于 \(V^n\)。
+
+两者之间允许以下运算：
+
+\[
+P+v=Q,
+\]
+
+其中 \(P,Q\in E^n\)，而 \(v\in V^n\)。
+
+两个点之差是向量：
+
+\[
+Q-P=v.
+\]
+
+但是，一般不应直接定义：
+
+\[
+P+Q.
+\]
+
+因为两个位置相加并没有天然的仿射几何意义。
+
+这一约束对于 CPR 很重要：如果语言不区分 Point 与 Vector，平移、旋转、曲线组合和坐标计算就容易出现语义混乱。
+
+建议的语法：
+
+```cpr
+p = point(1, 2, 0)
+v = vector(3, 1, 0)
+
+q = p + v
+d = q - p
+```
+
+类型规则：
+
+```text
+Point + Vector -> Point
+Point - Point  -> Vector
+Vector + Vector -> Vector
+Scalar * Vector -> Vector
+```
+
+### 40. Transform：把几何变换从运动轨迹中分离出来
+
+CPR 需要一种独立的 `Transform` 类型。
+
+对于仿射变换，可以写成：
+
+\[
+T(P)=AP+b,
+\]
+
+其中 \(A\) 是线性映射，\(b\) 是平移向量。
+
+对应的向量变换为：
+
+\[
+T_V(v)=Av.
+\]
+
+注意，平移项 \(b\) 不应作用于位移向量。
+
+对于两个变换，采用函数复合语义：
+
+\[
+(T_2\circ T_1)(P)=T_2(T_1(P)).
+\]
+
+这意味着先执行 \(T_1\)，再执行 \(T_2\)。
+
+建议的语法：
+
+```cpr
+move = translate(vector(3, 0, 0))
+turn = rotate(axis = z_axis, angle = 45deg)
+scale = uniform_scale(2)
+
+combined = turn @ move
+result = combined(point(1, 0, 0))
+```
+
+这里约定 `@` 表示变换复合。具体的求值顺序应由 CPR 语言规范固定，而不能依赖实现者的猜测。
+
+特别地，仿射变换可以把圆映射为椭圆。例如，沿两个坐标轴使用不同缩放系数，就能把圆变为椭圆。这使椭圆成为 CPR 运动与变换体系中的自然对象，而不是需要单独硬编码的特殊图形。
+
+### 41. MotionRotor：明确 CPR 中 Rotor 的含义
+
+这是整个类型系统最重要的设计决策之一。
+
+“Rotor”在不同数学体系中可能具有不同含义：
+
+- 在几何代数中，Rotor 通常是用于表示旋转变换的特定代数元素。
+- 在 CPR 的运动生成思路中，Rotor 可以表示一个随参数变化的圆周运动分量。
+
+这两个概念有关联，但不应被定义成同一个类型。
+
+因此，建议在 CPR 的正式规范中区分：
+
+```text
+MotionRotor   // CPR 的运动生成原语
+GARotor       // 几何代数中的旋转算子
+```
+
+为了保持代码简洁，CPR 可以在运动模块中提供 `rotor()` 作为 `motion_rotor()` 的简写，但不能让 `rotor` 在同一类型上下文中产生含混的语义。
+
+二维 MotionRotor 可以定义为：
+
+\[
+R(t)=r e^{i(\omega t+\phi)},
+\]
+
+其中：
+
+- \(r\geq 0\) 是半径；
+- \(\omega\) 是带符号的角频率；
+- \(\phi\) 是初始相位；
+- \(t\) 是运动参数。
+
+将复数视为二维向量后，\(R(t)\) 表示相对于指定原点的位移，而不是一个完整的几何变换。
+
+如果需要将其放置在某个中心 \(C\)，则位置轨迹为：
+
+\[
+\gamma(t)=C+R(t).
+\]
+
+建议语法：
+
+```cpr
+r = motion_rotor(
+    radius = 5,
+    frequency = 2,
+    phase = 30deg
+)
+
+curve = trace(r)
+```
+
+这里的 `trace(r)` 将运动过程转换为曲线对象。
+
+需要强调：MotionRotor 的这个定义首先是 CPR 的语言设计提案；它与几何代数 Rotor 的关系需要通过显式转换规则建立，不能仅凭名称相同就认定两者等价。
+
+### 42. Curve：曲线是参数化映射，不是单纯的点集
+
+CPR 将参数化曲线定义为：
+
+\[
+\gamma:I\rightarrow E^n,
+\]
+
+其中 \(I\) 是参数域。
+
+例如：
+
+\[
+\gamma(t)=
+\begin{pmatrix}
+\cos t\\
+\sin t
+\end{pmatrix},
+\qquad t\in\mathbb R.
+\]
+
+该曲线描述一个圆周运动，其像集是单位圆。
+
+这里存在一个重要区别：**参数化曲线不仅包含轨迹点集，还包含参数与位置之间的对应关系。**
+
+同一个圆可以通过不同速度、不同方向、不同起始相位的参数化表达。因此，CPR 应当允许多个参数化曲线对应同一个几何支撑对象。
+
+建议定义：
+
+```cpr
+curve = parametric(
+    t = range(0, 2pi),
+    point = (cos(t), sin(t))
+)
+```
+
+曲线对象至少应当能够描述：
+
+- 参数域；
+- 参数到空间位置的映射；
+- 环境维度；
+- 参数化方向；
+- 是否具有周期性，以及周期信息（如果已知）。
+
+速度、切向量、曲率等属性可以通过求导或数值算法获得。
+
+### 43. Arc：将弧定义为有界曲线
+
+现在解决圆弧和椭圆弧的核心问题。
+
+设曲线为：
+
+\[
+\gamma:I\rightarrow E^n.
+\]
+
+对于参数 \(a,b\in I\)，且 \(a\leq b\)，可以定义一个有界曲线段：
+
+\[
+\operatorname{Arc}(\gamma,a,b)
+=
+\gamma\big|_{[a,b]}.
+\]
+
+也就是说，Arc 是一条曲线在指定参数区间上的限制。
+
+从类型关系上，可以把它理解为：
+
+\[
+\boxed{
+\text{Arc}=\text{Curve}+\text{Parameter Domain}
+}
+\]
+
+不过，在真正的语言规范中，Arc 还应保存遍历方向、端点约定以及必要的支撑曲线信息。
+
+建议采用以下概念结构：
+
+```text
+Arc
+├── support: Curve
+├── domain: [t0, t1]
+├── orientation
+└── endpoint_policy
+```
+
+`endpoint_policy` 用于明确端点是否包含在弧段中；对于大多数绘图和建模操作，可以默认采用包含端点的闭区间语义。
+
+#### 43.1 为什么仅指定两个端点不够？
+
+对于一个圆上的两个不同端点，通常存在两条连接它们的圆弧：一条沿一个方向经过较短的角度，另一条沿相反方向经过剩余角度。
+
+因此：
+
+```cpr
+arc(start = A, end = B)
+```
+
+在没有额外规则时，可能存在歧义。
+
+更可靠的接口应允许指定起始参数与有向扫角：
+
+```cpr
+a = arc(
+    support = circle(center = (0, 0), radius = 5),
+    start = 20deg,
+    sweep = 120deg
+)
+```
+
+这里的 `sweep` 是有向角度。正值和负值表示不同的遍历方向；绝对值大于 \(180^\circ\) 时，也能够表达大弧。
+
+角度规范化和多圈遍历规则需要在语言规范中明确，不能默认将所有角度都折叠到一个主值区间。
+
+#### 43.2 圆弧的数学定义
+
+设圆心为 \(C\)，半径为 \(r>0\)，则圆周参数化为：
+
+\[
+\gamma(t)=
+C+
+r
+\begin{pmatrix}
+\cos t\\
+\sin t
+\end{pmatrix}.
+\]
+
+给定起始角 \(\theta_0\) 和有向扫角 \(\Delta\theta\)，定义：
+
+\[
+t(u)=\theta_0+u\Delta\theta,
+\qquad u\in[0,1].
+\]
+
+于是圆弧可写为：
+
+\[
+\boxed{
+\alpha(u)=
+C+
+r
+\begin{pmatrix}
+\cos(\theta_0+u\Delta\theta)\\
+\sin(\theta_0+u\Delta\theta)
+\end{pmatrix}
+}
+\]
+
+其中 \(u\) 是归一化弧段参数。
+
+这种表达方式有一个优点：起始角、扫角和归一化参数各司其职，圆弧的端点和遍历方向均有明确含义。
+
+### 44. Ellipse 与 EllipseArc：椭圆弧应使用统一的曲线机制
+
+椭圆不需要被定义成一种特殊的 Rotor。
+
+在二维空间中，给定中心 \(C\)、两个线性无关的向量 \(u,v\)，定义：
+
+\[
+\gamma(t)=C+u\cos t+v\sin t.
+\]
+
+当 \(u\) 和 \(v\) 分别沿椭圆的两条主轴方向，且长度为半轴长度时，这就是标准的椭圆参数化。
+
+标准轴对齐椭圆为：
+
+\[
+\gamma(t)=
+\begin{pmatrix}
+c_x+a\cos t\\
+c_y+b\sin t
+\end{pmatrix},
+\qquad a,b>0.
+\]
+
+其中 \(a,b\) 分别是两个半轴长度。
+
+椭圆弧则直接使用相同的参数域限制：
+
+\[
+\boxed{
+\alpha(u)=
+C+
+u_0\cos(\theta_0+u\Delta\theta)
++
+v_0\sin(\theta_0+u\Delta\theta)
+}
+\]
+
+这里将 \(u_0,v_0\) 理解为固定的轴向向量，避免与归一化参数混淆时，正式规范中应分别命名为 \(e_1,e_2\)。因此，更严谨的写法是：
+
+\[
+\alpha(s)=
+C+
+e_1\cos(\theta_0+s\Delta\theta)
++
+e_2\sin(\theta_0+s\Delta\theta),
+\quad s\in[0,1].
+\]
+
+建议的 CPR 语法：
+
+```cpr
+e = ellipse(
+    center = (0, 0),
+    rx = 6,
+    ry = 3
+)
+
+ea = ellipse_arc(
+    support = e,
+    start = 0deg,
+    sweep = 180deg
+)
+```
+
+此处的 `start` 和 `sweep` 是椭圆参数角，而不是端点处切线与坐标轴的夹角。由于椭圆的参数角与通常意义下的极角不相同，CPR 文档必须明确这一点。
+
+椭圆弧的核心优势在于：它与圆弧使用相同的 Arc 语义，只是支撑曲线不同。
+
+因此，不需要为圆弧和椭圆弧设计两套彼此独立的参数域系统。
+
+### 45. 统一的 Trimmed Curve 抽象
+
+为了避免 CPR 的几何类型不断膨胀，我们可以进一步提出 `TrimmedCurve` 抽象。
+
+定义：
+
+\[
+\operatorname{TrimmedCurve}(\gamma,J),
+\]
+
+其中：
+
+- \(\gamma:I\rightarrow E^n\) 是支撑曲线；
+- \(J\subseteq I\) 是选定的参数子域。
+
+对于常见弧段，\(J\) 是一个有界区间。
+
+在语言接口上：
+
+```cpr
+segment = trim(
+    curve,
+    domain = [t0, t1]
+)
+```
+
+圆弧可以是：
+
+```cpr
+a = trim(circle_curve, domain = [theta0, theta1])
+```
+
+椭圆弧可以是：
+
+```cpr
+ea = trim(ellipse_curve, domain = [theta0, theta1])
+```
+
+更重要的是，这一抽象还可以推广到其他曲线：
+
+- Bézier 曲线段；
+- B-spline 曲线段；
+- 螺旋线的一段；
+- Rotor Composition 生成的曲线段；
+- 三维空间曲线段。
+
+因此，CPR 不应把 `Arc` 限制为圆弧的别名。圆弧只是具有圆形支撑曲线的一类弧段。
+
+### 46. Rotor Composition 与 Arc 的关系
+
+假设多个二维 MotionRotor 叠加：
+
+\[
+\gamma(t)=
+P_0+\sum_{k=1}^{N}R_k(t).
+\]
+
+那么 \(\gamma\) 定义了一条参数化曲线。
+
+当我们指定区间 \([a,b]\) 时：
+
+\[
+\alpha(t)=\gamma(t),
+\qquad t\in[a,b],
+\]
+
+就得到该曲线的一段。
+
+因此，CPR 可以允许以下统一流程：
+
+\[
+\boxed{
+\text{MotionRotor}
+\rightarrow
+\text{Rotor Composition}
+\rightarrow
+\text{Curve}
+\rightarrow
+\text{Arc}
+}
+\]
+
+但不能由此推断：任何 Rotor Composition 的输出都是圆弧或椭圆弧。
+
+一般的 Rotor 叠加可能生成摆线、复杂 Fourier 曲线或其他参数轨迹。这些轨迹同样可以被截取成弧段，但不一定是圆弧或椭圆弧。
+
+此外，运动的组合运算也必须区分：
+
+\[
+\gamma(t)=R_1(t)+R_2(t)
+\]
+
+表示向量或位置分量的叠加，而
+
+\[
+T=T_2\circ T_1
+\]
+
+表示变换复合。
+
+两种运算在数学上不同，不应仅仅因为它们都表现为“组合”就共享含糊的语法规则。
+
+### 47. Surface：将参数化曲线推广到参数化曲面
+
+曲线可以表示为：
+
+\[
+\gamma:I\rightarrow E^n.
+\]
+
+曲面则可以表示为：
+
+\[
+S:U\rightarrow E^3,
+\]
+
+其中 \(U\subseteq\mathbb R^2\) 是二维参数域。
+
+例如，标准环面可由两个角参数定义：
+
+\[
+S(u,v)=
+\begin{pmatrix}
+(R+r\cos v)\cos u\\
+(R+r\cos v)\sin u\\
+r\sin v
+\end{pmatrix}.
+\]
+
+这说明曲线与曲面可以共享一种基本抽象：
+
+```text
+ParameterizedGeometry
+├── parameter_domain
+├── evaluation
+└── ambient_space
+```
+
+Curve 使用一维参数域；Surface 使用二维参数域。
+
+但这并不意味着曲面是曲线的简单集合。曲面还涉及参数域边界、局部坐标、法向量、奇异点以及拓扑结构。
+
+CPR 可以先统一参数化求值接口，再为曲线、曲面和实体分别制定必要的几何规则。
+
+### 48. 几何后端：不要求所有对象来自同一种代数
+
+CPR 应当将语言层的几何对象与具体数学后端分离。
+
+建议的架构如下：
+
+```text
+CPR Source Program
+        |
+        v
+Geometry Type System
+        |
+        v
+Geometric Semantic Layer
+        |
+        +---------------------+
+        |                     |
+        v                     v
+Motion / Curve Backend    Algebra Backend
+        |                     |
+        v                     v
+Parametric Curves         Complex / Quaternion
+Arcs / Splines            Clifford Algebra / CGA
+Intersections             Rotations / Conformal Maps
+        |                     |
+        +----------+----------+
+                   |
+                   v
+          Evaluation / Rendering
+```
+
+这套设计意味着：
+
+- 圆弧可以用参数区间表达，也可以在特定后端中采用圆与边界参数的组合表达。
+- 椭圆弧可以用椭圆参数化表达，也可以从圆通过非等比仿射变换生成。
+- 几何代数 Rotor 可以用于旋转变换，但不必承担整个 Arc 类型的语义。
+- CGA 可以支持适合其数学结构的圆、直线及相关变换，但不需要把所有弧段强行编码成单一代数元素。
+
+需要特别注意：**后端能够计算某个对象，不代表该对象必须成为该后端的原生代数元素。**
+
+语言的类型系统应当首先服务于清晰的程序语义。
+
+### 49. 类型规则与编译器检查
+
+为了使以上设计可以进入实际编译器，CPR 需要制定初步的类型规则。
+
+```text
+trace(MotionRotor) -> Curve
+
+trace(MotionComposition) -> Curve
+
+trim(Curve, Domain) -> TrimmedCurve
+
+circle(Center, Radius) -> Circle
+
+ellipse(Center, AxisVectors) -> Ellipse
+
+arc(Circle, Start, Sweep) -> Arc
+
+ellipse_arc(Ellipse, Start, Sweep) -> Arc
+
+evaluate(Curve, Parameter) -> Point
+
+evaluate(Arc, NormalizedParameter) -> Point
+```
+
+这些签名是初步设计。正式实现还应检查参数域是否有效、半径是否非负、椭圆轴向量是否线性无关，以及角度和长度单位是否兼容。
+
+例如，下面的操作应该具有明确含义：
+
+```cpr
+c = circle(center = (0, 0), radius = 5)
+a = arc(support = c, start = 30deg, sweep = 90deg)
+
+p0 = a.evaluate(0)
+p1 = a.evaluate(1)
+```
+
+根据归一化参数语义：
+
+\[
+p_0=\alpha(0),\qquad p_1=\alpha(1).
+\]
+
+这两个值分别是弧段的起点与终点。
+
+对于一般的参数化曲线，如果参数域是 \([a,b]\)，可以采用：
+
+\[
+t(s)=a+s(b-a),\qquad s\in[0,1]
+\]
+
+将参数统一归一化。这能让绘制、采样、动画和后续的几何算法共享一套接口。
+
+### 50. V0.2 的核心结论与后续研究任务
+
+本章提出以下设计结论。
+
+**结论一：Rotor、Curve 与 Arc 是三个不同的概念。**
+
+Rotor 描述运动原语；Curve 描述参数化轨迹；Arc 描述受限参数域内的曲线段。
+
+**结论二：圆弧和椭圆弧应当成为 CPR 的原生语言对象。**
+
+它们的原生性来自 CPR 的几何语义和类型系统，而不是要求它们成为 Clifford 代数或 CGA 中的原生元素。
+
+**结论三：圆弧与椭圆弧可以共享统一的弧段抽象。**
+
+二者都可以看成支撑曲线在特定参数域上的限制。差异主要体现在支撑曲线的几何性质和具体计算方法。
+
+**结论四：运动生成与几何对象表示必须解耦。**
+
+CPR 可以从 Rotor 组合生成曲线，再截取曲线形成弧段；同时也可以直接构造圆、椭圆、Bézier 曲线等几何对象，而不要求它们全部先转换成 Rotor 组合。
+
+**结论五：几何代数是 CPR 的计算基础之一，而不是全部几何语义的唯一来源。**
+
+复数、四元数、Clifford 代数、参数化曲线算法和数值几何方法可以在统一的类型系统下协同工作。
+
+据此，CPR 下一阶段的研究任务应调整为：
+
+1. 正式定义 `Point`、`Vector`、`Transform` 的类型规则。
+2. 固定 CPR `MotionRotor` 与几何代数 `GARotor` 的命名及转换关系。
+3. 定义 `Curve`、`Arc` 和 `TrimmedCurve` 的数学语义。
+4. 为圆弧、椭圆弧建立统一的构造、求值和采样接口。
+5. 研究变换作用于曲线和弧段时，如何保留参数域、方向和端点语义。
+6. 制定几何后端接口，使不同代数与数值算法能够共同实现 CPR 的几何操作。
+
+最终，CPR 的理论结构可以从单纯的运动组合体系进一步发展为：
+
+\[
+\boxed{
+\text{Motion Algebra}
++
+\text{Geometry Semantics}
++
+\text{Computational Backends}
+}
+\]
+
+这将使 CPR 不仅能通过运动生成复杂图形，也能将这些图形作为具有严格类型、参数域和几何语义的对象进行操作。

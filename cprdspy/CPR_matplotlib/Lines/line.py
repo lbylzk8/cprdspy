@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 
-from cprdspy.CPR_matplotlib.Dots.dot import Dots, n_dots, n_dots_array, draw_dots
+from ..Dots.dot import Dots, n_dots, n_dots_array, draw_dots
 
 # ======================== 线段容器 ========================
 

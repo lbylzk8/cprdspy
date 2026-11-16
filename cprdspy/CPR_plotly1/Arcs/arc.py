@@ -67,7 +67,7 @@ def arc_point(
 
     if return_arc:
         return trace
-    return trace
+    return [trace]
 
 
 ## arc_point_inverse
@@ -80,6 +80,8 @@ def arc_point_inverse(
     points=1000,
     line_width=1,
     label=None,
+    name=None,
+    showlegend=None,
     plot=True,
     direction="cw",
     return_arc=False,
@@ -94,6 +96,8 @@ def arc_point_inverse(
         points=points,
         line_width=line_width,
         label=label,
+        name=name,
+        showlegend=showlegend,
         plot=plot,
         direction=direction,
         return_arc=return_arc,
@@ -183,7 +187,7 @@ def arc(
 
     if return_arc:
         return trace
-    return trace
+    return [trace]
 
 
 ## arc_degree_inverse
@@ -198,6 +202,8 @@ def arc_inverse(
     points=1000,
     line_width=1,
     label=None,
+    name=None,
+    showlegend=None,
     use_degree=True,
     plot=True,
     direction="cw",
@@ -215,6 +221,8 @@ def arc_inverse(
         points=points,
         line_width=line_width,
         label=label,
+        name=name,
+        showlegend=showlegend,
         use_degree=use_degree,
         plot=plot,
         direction=direction,
@@ -289,6 +297,96 @@ def arc_dot_inverse(
         return_arc=False,
         **kwargs,
     )
+
+
+# 中心旋转弧
+def arc_rotate(
+    r=1,
+    angle1=45,
+    angle2=135,
+    rotation=0,
+    color="#0f0",
+    alpha=1,
+    center=(0, 0),
+    points=1000,
+    line_width=1,
+    label=None,
+    name=None,
+    showlegend=None,
+    use_degree=True,
+    plot=True,
+    direction="ccw",
+    return_arc=False,
+    **kwargs,
+):
+    """
+    绘制一段弧，其 angle2 端固定在 center，并可绕原点旋转。
+
+    Parameters
+    ----------
+    r : float
+        弧的半径。
+    angle1, angle2 : float
+        弧的起始角/终止角。use_degree=True 时为度数，否则为弧度。
+    rotation : float
+        绕原点旋转的角度。use_degree=True 时为度数，否则为弧度。
+    center : tuple
+        弧的 angle2 端点放置位置（即旋转后该点保持不动的前提是 center=(0,0)）。
+    use_degree : bool
+        True 表示 angle1/angle2/rotation 使用角度制，False 使用弧度制。
+    plot : bool
+        False 时返回旋转后的 (x, y) 数据而不绘图。
+    return_arc : bool
+        True 时返回 plotly Scatter 对象。
+    """
+    # ---------- 1. 角度制 → 弧度 ----------
+    if use_degree:
+        a1 = np.deg2rad(angle1)
+        a2 = np.deg2rad(angle2)
+        rot = np.deg2rad(rotation)
+    else:
+        a1 = angle1
+        a2 = angle2
+        rot = rotation
+
+    # ---------- 2. 将弧的 a2 端点平移到 center ----------
+    arc_center = (center[0] - r * np.cos(a2), center[1] - r * np.sin(a2))
+
+    x, y = arc(
+        r=r,
+        angle1=a1,
+        angle2=a2,
+        rotation=0,
+        center=arc_center,
+        points=points,
+        use_degree=False,  # 已转为弧度
+        plot=False,
+        direction=direction,
+        **kwargs,
+    )
+
+    # ---------- 3. 绕原点旋转 ----------
+    x_rot = x * np.cos(rot) - y * np.sin(rot)
+    y_rot = x * np.sin(rot) + y * np.cos(rot)
+
+    if not plot:
+        return x_rot, y_rot
+
+    # ---------- 4. 返回 plotly trace ----------
+    trace = go.Scatter(
+        x=x_rot,
+        y=y_rot,
+        mode="lines",
+        line=dict(color=color, width=line_width),
+        opacity=alpha,
+        name=name if name else label,
+        showlegend=showlegend if showlegend is not None else (label is not None),
+        **kwargs,
+    )
+
+    if return_arc:
+        return trace
+    return [trace]
 
 
 # 椭圆弧
@@ -366,4 +464,16 @@ def oval_arc(
         **kwargs,
     )
 
-    return trace
+    return [trace]
+
+
+__all__ = [
+    "arc_point",
+    "arc_point_inverse",
+    "arc",
+    "arc_inverse",
+    "arc_dot",
+    "arc_dot_inverse",
+    "arc_rotate",
+    "oval_arc",
+]

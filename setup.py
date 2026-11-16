@@ -11,8 +11,8 @@ def get_long_description():
 
 setup(
     name="cprdspy",
-    version="0.3.0",  # 版本号递增
-    packages=find_packages(exclude=["tests*"]),
+    version="0.3.4",  # 版本号递增
+    packages=find_packages(include=["cprdspy", "cprdspy.*"]),
     include_package_data=True,
     install_requires=[
         "numpy>=1.21.0",

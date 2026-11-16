@@ -1072,82 +1072,82 @@ clear_scene()
 #     scale=(1.2, 1.2, 1.0),  # 缩放
 # )
 
-# a, b, c = 2, 1 / 3, 2
-# n = 4
-# u_res = 100
-# v_res = 100
-# color1 = (0.5, 1.0, 0.5, 0.7)
-# color2 = (0.5, 0.5, 1.0, 0.7)
+a, b, c = 2, 1 / 3, 2
+n = 4
+u_res = 100
+v_res = 100
+color1 = (0.5, 1.0, 0.5, 0.7)
+color2 = (0.5, 0.5, 1.0, 0.7)
 
-# for i in range(12):
-#     petal(
-#         a,
-#         b,
-#         c,
-#         n,
-#         u_res,
-#         v_res,
-#         color1,
-#         color2,
-#         affine_matrix=M,
-#         name="Petal_L0_" + str(i + 1),
-#         rotation_euler_deg=(15, 0, i * 30 + 15),  # 绕Z轴旋转30度
-#         scale=(np.sqrt(8), np.sqrt(8), np.sqrt(8)),
-#     )
-#     petal(
-#         a,
-#         b,
-#         c,
-#         n,
-#         u_res,
-#         v_res,
-#         color1,
-#         color2,
-#         affine_matrix=M,
-#         name="Petal_L1_" + str(i + 1),
-#         rotation_euler_deg=(15, -15, i * 30),  # 绕Z轴旋转30度
-#         scale=(2, 2, 2),
-#     )
-#     petal(
-#         a,
-#         b,
-#         c,
-#         n,
-#         u_res,
-#         v_res,
-#         color1,
-#         color2,
-#         affine_matrix=M,
-#         name="Petal_L2_" + str(i + 1),
-#         rotation_euler_deg=(30, -30, i * 30 + 15),  # 绕Z轴旋转30度
-#         scale=(1.5, 1.5, 1.5),  # 缩放
-#     )
-#     petal(
-#         a,
-#         b,
-#         c,
-#         n,
-#         u_res,
-#         v_res,
-#         color1,
-#         color2,
-#         affine_matrix=M,
-#         name="Petal_L3_" + str(i + 1),
-#         rotation_euler_deg=(30, -45, i * 30),  # 绕Z轴旋转30度
-#         scale=(1.3, 1.3, 1.3),  # 缩放
-#     )
-#     petal(
-#         a,
-#         b,
-#         c,
-#         n,
-#         u_res,
-#         v_res,
-#         color1,
-#         color2,
-#         affine_matrix=M,
-#         name="Petal_L4_" + str(i + 1),
-#         rotation_euler_deg=(30, -60, i * 30 + 15),  # 绕Z轴旋转30度
-#         scale=(1, 1, 1),  # 缩放
-#     )
-flower()
+for i in range(12):
+    petal(
+        a,
+        b,
+        c,
+        n,
+        u_res,
+        v_res,
+        color1,
+        color2,
+        affine_matrix=M,
+        name="Petal_L0_" + str(i + 1),
+        rotation_euler_deg=(15, 0, i * 30 + 15),  # 绕Z轴旋转30度
+        scale=(np.sqrt(8), np.sqrt(8), np.sqrt(8)),
+    )
+    petal(
+        a,
+        b,
+        c,
+        n,
+        u_res,
+        v_res,
+        color1,
+        color2,
+        affine_matrix=M,
+        name="Petal_L1_" + str(i + 1),
+        rotation_euler_deg=(15, -15, i * 30),  # 绕Z轴旋转30度
+        scale=(2, 2, 2),
+    )
+    petal(
+        a,
+        b,
+        c,
+        n,
+        u_res,
+        v_res,
+        color1,
+        color2,
+        affine_matrix=M,
+        name="Petal_L2_" + str(i + 1),
+        rotation_euler_deg=(30, -30, i * 30 + 15),  # 绕Z轴旋转30度
+        scale=(1.5, 1.5, 1.5),  # 缩放
+    )
+    petal(
+        a,
+        b,
+        c,
+        n,
+        u_res,
+        v_res,
+        color1,
+        color2,
+        affine_matrix=M,
+        name="Petal_L3_" + str(i + 1),
+        rotation_euler_deg=(30, -45, i * 30),  # 绕Z轴旋转30度
+        scale=(1.3, 1.3, 1.3),  # 缩放
+    )
+    petal(
+        a,
+        b,
+        c,
+        n,
+        u_res,
+        v_res,
+        color1,
+        color2,
+        affine_matrix=M,
+        name="Petal_L4_" + str(i + 1),
+        rotation_euler_deg=(30, -60, i * 30 + 15),  # 绕Z轴旋转30度
+        scale=(1, 1, 1),  # 缩放
+    )
+# flower()

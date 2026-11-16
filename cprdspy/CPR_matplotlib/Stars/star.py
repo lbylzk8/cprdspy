@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from cprdspy.CPR_matplotlib.Flowers.flower import *
+from ..Flowers.flower import *
 
 
 def star(

@@ -1,7 +1,7 @@
 from typing import Tuple, List, Optional, Union, Dict, Any
 import numpy as np
 import plotly.graph_objects as go
-from cprdspy.CPR_plotly.Circles.circle_config import (
+from ..Circles.circle_config import (
     circle,
     concentric_circles,
     concentric_circles_geometric,

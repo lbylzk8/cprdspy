@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hopf 纤维化 · 交互式可视化</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #06060f;
+            color: #c8c8d8;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+        }
+
+        #plot {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #panel {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background: rgba(12, 12, 28, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(100, 100, 180, 0.2);
+            border-radius: 14px;
+            padding: 20px 22px;
+            width: 290px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        #panel h2 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #e8e8ff;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        #panel .subtitle {
+            font-size: 11px;
+            color: #7878a0;
+            margin-bottom: 16px;
+            font-style: italic;
+        }
+
+        .ctrl {
+            margin-bottom: 14px;
+        }
+
+        .ctrl label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #9898b8;
+            margin-bottom: 5px;
+        }
+
+        .ctrl label span {
+            color: #b8b8e0;
+            font-weight: 600;
+        }
+
+        .ctrl input[type=range] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            background: rgba(100, 100, 180, 0.2);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .ctrl input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #6868c0;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(100, 100, 200, 0.4);
+        }
+
+        .ctrl select {
+            width: 100%;
+            padding: 6px 10px;
+            background: rgba(30, 30, 60, 0.8);
+            border: 1px solid rgba(100, 100, 180, 0.3);
+            border-radius: 6px;
+            color: #c8c8e0;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 7px 0;
+            background: rgba(80, 80, 160, 0.15);
+            border: 1px solid rgba(100, 100, 180, 0.25);
+            border-radius: 7px;
+            color: #a8a8d0;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(80, 80, 160, 0.3);
+            color: #d0d0ff;
+        }
+
+        .btn.active {
+            background: rgba(100, 100, 200, 0.3);
+            border-color: rgba(120, 120, 200, 0.5);
+        }
+
+        #info {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            background: rgba(12, 12, 28, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 100, 180, 0.15);
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 11px;
+            line-height: 1.7;
+            color: #8888a8;
+            max-width: 380px;
+            z-index: 100;
+        }
+
+        #info strong {
+            color: #b0b0d8;
+        }
+
+        #formula {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: rgba(12, 12, 28, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 100, 180, 0.15);
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 12px;
+            line-height: 1.8;
+            color: #9898b8;
+            max-width: 340px;
+            z-index: 100;
+            font-family: 'Courier New', monospace;
+        }
+
+        #formula .title {
+            color: #b8b8e0;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="plot"></div>
+
+    <div id="panel">
+        <h2>Hopf 纤维化</h2>
+        <div class="subtitle">S¹ ↪ S³ → S² &nbsp;·&nbsp; 立体投影到 ℝ³</div>
+
+        <div class="ctrl">
+            <label>纤维数量 <span id="v-n">120</span></label>
+            <input type="range" id="c-n" min="12" max="400" value="120" step="2">
+        </div>
+        <div class="ctrl">
+            <label>每条纤维采样点 <span id="v-res">120</span></label>
+            <input type="range" id="c-res" min="40" max="300" value="120" step="10">
+        </div>
+        <div class="ctrl">
+            <label>线宽 <span id="v-lw">1.8</span></label>
+            <input type="range" id="c-lw" min="0.3" max="5" value="1.8" step="0.1">
+        </div>
+        <div class="ctrl">
+            <label>透明度 <span id="v-op">0.72</span></label>
+            <input type="range" id="c-op" min="0.1" max="1" value="0.72" step="0.02">
+        </div>
+        <div class="ctrl">
+            <label>配色</label>
+            <select id="c-color">
+                <option value="hsv" selected>HSV 彩虹</option>
+                <option value="height">按高度渐变</option>
+                <option value="phase">按相位着色</option>
+                <option value="linked">按链接分组</option>
+            </select>
+        </div>
+        <div class="btn-row">
+            <div class="btn" id="btn-spin">自动旋转</div>
+            <div class="btn" id="btn-reset">重置视角</div>
+        </div>
+        <div class="btn-row">
+            <div class="btn" id="btn-clifford">Clifford 环面</div>
+            <div class="btn" id="btn-poles">显示极点</div>
+        </div>
+    </div>
+
+    <div id="formula">
+        <div class="title">立体投影后的 Hopf 纤维</div>
+        圆心: (0, 0, −cos 2η)<br>
+        半径: sin 2η<br>
+        η ∈ (0, π/2), γ ∈ [0, 2π)<br>
+        <br>
+        <span style="color:#6868a0">
+            X = sin2η·cos(γ−Δ) / (1−cos2η·cos2γ)<br>
+            Y = sin2η·sin(γ−Δ) / (1−cos2η·cos2γ)<br>
+            Z = (cos2η−cos2γ) / (1−cos2η·cos2γ)
+        </span>
+    </div>
+
+    <div id="info">
+        <strong>Hopf 纤维化</strong>：三维球面 S³ 被分解为无数个互不相交的圆，
+        且任意两个圆都互相链接。底空间是 S²，每条纤维对应 S² 上的一个点。
+        鼠标拖拽旋转 · 滚轮缩放 · 右键平移
+    </div>
+
+    <script>
+        // ============================================================
+        // 核心数学：Hopf 纤维化的立体投影
+        // ============================================================
+        function hopfFiber(eta, delta, nPts) {
+            const cos2eta = Math.cos(2 * eta);
+            const sin2eta = Math.sin(2 * eta);
+            const denom_base = 1 - cos2eta; // 当 γ=0 时的分母特殊情况处理
+
+            const X = new Float64Array(nPts);
+            const Y = new Float64Array(nPts);
+            const Z = new Float64Array(nPts);
+
+            for (let i = 0; i < nPts; i++) {
+                const gamma = (i / (nPts - 1)) * 2 * Math.PI;
+                const cos2g = Math.cos(2 * gamma);
+                const denom = 1 - cos2eta * cos2g;
+
+                // 避免 η=0 或 η=π/2 时的退化
+                if (Math.abs(denom) < 1e-12) {
+                    X[i] = 0; Y[i] = 0;
+                    Z[i] = eta < 0.01 ? -1 : 1;
+                    continue;
+                }
+
+                X[i] = sin2eta * Math.cos(gamma - delta) / denom;
+                Y[i] = sin2eta * Math.sin(gamma - delta) / denom;
+                Z[i] = (cos2eta - cos2g) / denom;
+            }
+            return { x: Array.from(X), y: Array.from(Y), z: Array.from(Z) };
+        }
+
+        // Fibonacci 球面分布（在 S² 上均匀取点）
+        function fibSphere(n) {
+            const pts = [];
+            const phi = Math.PI * (Math.sqrt(5) - 1); // 黄金角
+            for (i = 0; i < n; i++) {
+                const y = 1 - (2 * i + 1) / n;  // cos(θ), 从 1 到 -1
+                const r = Math.sqrt(1 - y * y);
+                const theta = phi * i;
+                pts.push({
+                    theta_sph: Math.acos(Math.max(-1, Math.min(1, y))),  // [0, π]
+                    phi_sph: theta % (2 * Math.PI),
+                    nx: r * Math.cos(theta),
+                    ny: r * Math.sin(theta),
+                    nz: y
+                });
+            }
+            return pts;
+        }
+
+        // 从 S² 上的点提取 Hopf 参数 (η, Δ)
+        function sphereToHopfParams(pt) {
+            // h(η, ξ₁, ξ₂) = (sin2η cosΔ, sin2η sinΔ, cos2η)
+            // 所以 cos2η = nz, sin2η cosΔ = nx, sin2η sinΔ = ny
+            const cos2eta = pt.nz;
+            const eta = Math.acos(Math.max(-1, Math.min(1, cos2eta))) / 2;
+            // 限制 η ∈ [0, π/2]
+            const etaClamped = Math.max(0.001, Math.min(Math.PI / 2 - 0.001, eta));
+            const sin2eta = Math.sin(2 * etaClamped);
+            const delta = Math.atan2(pt.ny, pt.nx);
+            return { eta: etaClamped, delta: delta };
+        }
+
+        // 颜色生成
+        function getColor(i, n, mode, pt) {
+            switch (mode) {
+                case 'hsv': {
+                    const hue = (i * 137.508) % 360;
+                    return `hsl(${hue}, 78%, 58%)`;
+                }
+                case 'height': {
+                    const t = (pt.nz + 1) / 2; // 0 to 1
+                    const r = Math.round(60 + 195 * t);
+                    const g = Math.round(80 + 100 * (1 - Math.abs(t - 0.5) * 2));
+                    const b = Math.round(255 - 195 * t);
+                    return `rgb(${r},${g},${b})`;
+                }
+                case 'phase': {
+                    const hue = ((pt.phi_sph / (2 * Math.PI)) * 360) % 360;
+                    return `hsl(${hue}, 85%, 55%)`;
+                }
+                case 'linked': {
+                    const group = Math.floor(pt.nz * 5 + 5);
+                    const hues = [0, 30, 60, 120, 200, 260, 300, 330];
+                    const hue = hues[group % hues.length];
+                    return `hsl(${hue}, 75%, 55%)`;
+                }
+                default: return `hsl(${(i * 137.508) % 360}, 78%, 58%)`;
+            }
+        }
+
+        // ============================================================
+        // 主渲染函数
+        // ============================================================
+        let spinning = false;
+        let showPoles = false;
+        let spinInterval = null;
+
+        function render() {
+            const N = parseInt(document.getElementById('c-n').value);
+            const res = parseInt(document.getElementById('c-res').value);
+            const lw = parseFloat(document.getElementById('c-lw').value);
+            const op = parseFloat(document.getElementById('c-op').value);
+            const colorMode = document.getElementById('c-color').value;
+
+            document.getElementById('v-n').textContent = N;
+            document.getElementById('v-res').textContent = res;
+            document.getElementById('v-lw').textContent = lw.toFixed(1);
+            document.getElementById('v-op').textContent = op.toFixed(2);
+
+            const pts = fibSphere(N);
+            const traces = [];
+
+            pts.forEach((pt, i) => {
+                const { eta, delta } = sphereToHopfParams(pt);
+                const fib = hopfFiber(eta, delta, res);
+                const color = getColor(i, N, colorMode, pt);
+
+                traces.push({
+                    type: 'scatter3d',
+                    mode: 'lines',
+                    x: fib.x, y: fib.y, z: fib.z,
+                    line: { color: color, width: lw },
+                    opacity: op,
+                    hoverinfo: 'text',
+                    hovertext: `纤维 #${i + 1}<br>η = ${eta.toFixed(3)}<br>Δ = ${delta.toFixed(3)}<br>S² = (${pt.n.toFixed(3)}, ${pt.ny.toFixed(3)}, ${pt.nz.toFixed(3)})`,
+                    showlegend: false
+                });
+            });
+
+            // 可选：显示 S² 上的极点（对应的退化纤维）
+            if (showPoles) {
+                traces.push({
+                    type: 'scatter3d', mode: 'markers',
+                    x: [0], y: [0], z: [-1],
+                    marker: { size: 5, color: '#4488ff', symbol: 'diamond' },
+                    name: 'S² 南极 (η=0)', hoverinfo: 'name', showlegend: true
+                });
+                traces.push({
+                    type: 'scatter3d', mode: 'markers',
+                    x: [0], y: [0], z: [1],
+                    marker: { size: 5, color: '#ff4488', symbol: 'diamond' },
+                    name: 'S² 北极 (η=π/2)', hoverinfo: 'name', showlegend: true
+                });
+            }
+
+            const layout = {
+                scene: {
+                    xaxis: { visible: false, background: 'rgba(0,0,0,0)' },
+                    yaxis: { visible: false, background: 'rgba(0,0,0,0)' },
+                    zaxis: { visible: false, background: 'rgba(0,0,0,0)' },
+                    bgcolor: '#06060f',
+                    aspectmode: 'data',
+                    camera: {
+                        eye: { x: 2.2, y: 2.2, z: 1.2 },
+                        up: { x: 0, y: 0, z: 1 }
+                    }
+                },
+                paper_bgcolor: '#06060f',
+                margin: { l: 0, r: 0, t: 0, b: 0 },
+                showlegend: showPoles,
+                legend: {
+                    x: 0.78, y: 0.95,
+                    bgcolor: 'rgba(12,12,28,0.8)',
+                    font: { color: '#9898b8', size: 11 }
+                }
+            };
+
+            Plotly.react('plot', traces, layout, {
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+                displaylogo: false
+            });
+        }
+
+        // ============================================================
+        // 事件绑定
+        // ============================================================
+        ['c-n', 'c-res', 'c-lw', 'c-op', 'c-color'].forEach(id => {
+            document.getElementById(id).addEventListener('input', render);
+        });
+
+        document.getElementById('btn-spin').addEventListener('click', function () {
+            spinning = !spinning;
+            this.classList.toggle('active', spinning);
+            if (spinning) {
+                let angle = 0;
+                spinInterval = setInterval(() => {
+                    angle += 0.008;
+                    const r = 3.2;
+                    Plotly.relayout('plot', {
+                        'scene.camera.eye': {
+                            x: r * Math.cos(angle),
+                            y: r * Math.sin(angle),
+                            z: 1.0 + 0.3 * Math.sin(angle * 0.7)
+                        }
+                    });
+                }, 30);
+            } else {
+                clearInterval(spinInterval);
+            }
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if (spinning) {
+                spinning = false;
+                clearInterval(spinInterval);
+                document.getElementById('btn-spin').classList.remove('active');
+            }
+            Plotly.relayout('plot', {
+                'scene.camera.eye': { x: 2.2, y: 2.2, z: 1.2 }
+            });
+        });
+
+        document.getElementById('btn-clifford').addEventListener('click', () => {
+            // 高亮 Clifford 环面 (η = π/4) 的纤维
+            const nClifford = 36;
+            const res = parseInt(document.getElementById('c-res').value);
+            const lw = parseFloat(document.getElementById('c-lw').value);
+            const traces = [];
+
+            for (let i = 0; i < nClifford; i++) {
+                const delta = (i / nClifford) * 2 * Math.PI;
+                const fib = hopfFiber(Math.PI / 4, delta, res);
+                const hue = (i / nClifford) * 360;
+
+                traces.push({
+                    type: 'scatter3d', mode: 'lines',
+                    x: fib.x, y: fib.y, z: fib.z,
+                    line: { color: `hsl(${hue}, 85%, 60%)`, width: lw * 1.5 },
+                    opacity: 0.9,
+                    hoverinfo: 'text',
+                    hovertext: `Clifford 纤维 #${i + 1}<br>η = π/4<br>Δ = ${delta.toFixed(3)}<br>半径 = 1, 圆心 = 原点`,
+                    showlegend: false
+                });
+            }
+
+            const layout = {
+                scene: {
+                    xaxis: { visible: false }, yaxis: { visible: false }, zaxis: { visible: false },
+                    bgcolor: '#06060f', aspectmode: 'data',
+                    camera: { eye: { x: 2.5, y: 2.5, z: 0.8 } }
+                },
+                paper_bgcolor: '#06060f', margin: { l: 0, r: 0, t: 0, b: 0 }
+            };
+
+            Plotly.react('plot', traces, layout, { displayModeBar: true, displaylogo: false });
+        });
+
+        document.getElementById('btn-poles').addEventListener('click', function () {
+            showPoles = !showPoles;
+            this.classList.toggle('active', showPoles);
+            render();
+        });
+
+        // 初始渲染
+        render();
+    </script>
+</body>
+
+</html>

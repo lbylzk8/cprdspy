@@ -6,7 +6,7 @@ import os
 import sys
 
 # 导入arc_config中的函数和配置
-from cprdspy.CPR_plotly.Arcs.arc_config import (
+from ..Arcs.arc_config import (
     PLOTLY_DARK,
     DEEP_SEA,
     CYBERPUNK,

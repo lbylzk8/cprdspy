@@ -19,3 +19,19 @@ examples/images/
 
 # Ignore all .history files completely
 .history/
+
+# 本地工具/调试杂物，不入库
+.claude/
+.dsh-acl-recovery/
+debug.log
+_probe.py
+_probe2.py
+
+# 大型演示产物（>4MB 的 notebook / html 导出），只留在本地
+# 注意：cprdspy/CPR_plotly1/test.ipynb 已被 git 跟踪，需先 git rm --cached 才会真正忽略
+cprdspy/CPR_plotly1/test.ipynb
+cprdspy/CPR_plotly1/test_all.ipynb
+cprdspy/rotor/rotor_demo.ipynb
+cprdspy/rotor/rotor_3d_demo.html
+demo_3d_plotly.html
+examples/cprdspy_gallery.ipynb

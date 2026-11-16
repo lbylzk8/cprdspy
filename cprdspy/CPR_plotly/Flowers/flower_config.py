@@ -2,7 +2,7 @@ from typing import Tuple, List, Optional, Union, Dict, Any
 import numpy as np
 import plotly.graph_objects as go
 from functools import lru_cache
-from cprdspy.CPR_plotly.Arcs.arc_config import *
+from ..Arcs.arc_config import *
 
 
 class FlowerError(Exception):

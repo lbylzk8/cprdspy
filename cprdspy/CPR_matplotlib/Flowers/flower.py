@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from cprdspy.CPR_matplotlib.Arcs.arc import *
+from ..Arcs.arc import *
 
 
 # 圆花瓣
@@ -173,6 +173,165 @@ def flower_petal(
         return (center1[0], center1[1]), (center2[0], center2[1]), arc_d1, arc_d2
 
 
+# 圆花瓣（带填充）
+def flower_petal_fill(
+    R=1,
+    r=1,
+    n=4,
+    rotation=0,
+    color="#0f0",
+    alpha=1,
+    fill_color=None,
+    fill_alpha=0.3,
+    edge_color=None,
+    edge_width=None,
+    edge_style=None,
+    center=(0, 0),
+    points=1000,
+    linestyle="-",
+    linewidth=1,
+    label=None,
+    marker=None,
+    markersize=5,
+    markerfacecolor="r",
+    markeredgecolor="k",
+    markeredgewidth=1,
+    ax=None,
+    plot_center=False,
+    center_color="#0f0",
+    center_size=8,
+    use_degree=True,
+    plot=True,
+    direction="ccw",
+    **kwargs,
+):
+    """
+    绘制一片带填充的花瓣。
+
+    参数（新增/覆盖）:
+        fill_color (str): 填充颜色，默认与 edge_color（或 color）一致。
+        fill_alpha (float): 填充透明度，默认为 0.3。
+        edge_color (str): 边缘线条颜色，默认与 color 一致。
+        edge_width (float): 边缘线条宽度，默认与 linewidth 一致。
+        edge_style (str): 边缘线条样式，默认与 linestyle 一致。
+
+    其余参数与 flower_petal 相同。
+
+    花瓣分类:
+        - R < r: 荷花花瓣 (r > a, r > R)
+        - R = r: 睡莲花瓣 (r > a 或 r = a, r = R)
+        - R > r: 曼陀罗花瓣 (r > a 或 r = a, r < R)
+    """
+    # ---------- 几何计算 ----------
+    angle = 2 * np.pi / n
+    a = R * np.sin(np.pi / n)
+    if r > 0:
+        beta = np.arccos(min(1, max(-1, a / r)))
+    else:
+        beta = 0
+    theta_arc = np.pi / 2 - np.pi / n + np.arccos(min(1, max(-1, a / r)))
+
+    # 将输入 rotation 转为弧度做三角运算
+    rotation_rad = np.deg2rad(rotation) if use_degree else rotation
+
+    # 计算圆心坐标
+    center1_theta = rotation_rad + angle / 2
+    center2_theta = rotation_rad - angle / 2
+    center1 = (
+        np.cos(center1_theta) * R + center[0],
+        np.sin(center1_theta) * R + center[1],
+    )
+    center2 = (
+        np.cos(center2_theta) * R + center[0],
+        np.sin(center2_theta) * R + center[1],
+    )
+
+    # ---------- 分支：根据 r 与 a 的关系计算角度 ----------
+    if r < a:
+        # 不能形成花瓣
+        print(f"r={r:.3f}, a={a:.3f}, R={R:.3f}")
+        print(f"r<a, 不能形成花瓣。最小需要 r > {a:.3f}")
+        return None
+
+    elif abs(r - a) < 1e-12:
+        # r = a（此时 beta = 0，两弧在中心处相切）
+        # R < r 为特殊曼陀罗花瓣，R = r 为睡莲花瓣
+        theta1_base_rad = np.pi + angle / 2
+        theta2_base_rad = np.pi + angle / 2 + theta_arc
+        theta3_base_rad = np.pi / 2
+        theta4_base_rad = np.pi / 2 + theta_arc
+
+    else:  # r > a
+        # R < r 为普通曼陀罗花瓣，R = r 为睡莲花瓣，R > r 为荷花花瓣
+        theta1_base_rad = np.pi + angle / 2
+        theta2_base_rad = np.pi + angle / 2 + theta_arc
+        theta3_base_rad = np.pi / 2 - beta
+        theta4_base_rad = np.pi / 2 - beta + theta_arc
+
+    # ---------- 角度转换 ----------
+    if use_degree:
+        theta1 = np.rad2deg(theta1_base_rad)
+        theta2 = np.rad2deg(theta2_base_rad)
+        theta3 = np.rad2deg(theta3_base_rad)
+        theta4 = np.rad2deg(theta4_base_rad)
+        rotation_for_arc = rotation  # 原始度数
+    else:
+        theta1 = theta1_base_rad
+        theta2 = theta2_base_rad
+        theta3 = theta3_base_rad
+        theta4 = theta4_base_rad
+        rotation_for_arc = rotation_rad
+
+    # ---------- 获取弧数据（不绘制） ----------
+    x1, y1 = arc(
+        r, theta1, theta2, rotation_for_arc,
+        center=center1, points=points,
+        use_degree=use_degree, plot=False, direction=direction,
+    )
+    x2, y2 = arc(
+        r, theta3, theta4, rotation_for_arc,
+        center=center2, points=points,
+        use_degree=use_degree, plot=False, direction=direction,
+    )
+
+    if not plot:
+        return (x1, y1, x2, y2)
+
+    # ---------- 填充与边缘参数 ----------
+    if ax is None:
+        ax = plt.gca()
+
+    fc = fill_color if fill_color is not None else (edge_color if edge_color is not None else color)
+    ec = edge_color if edge_color is not None else color
+    ew = edge_width if edge_width is not None else linewidth
+    es = edge_style if edge_style is not None else linestyle
+
+    # ---------- 填充：两弧直接拼接即形成闭合多边形 ----------
+    # 弧1 从交点A走到交点B，弧2 从交点B走回交点A → 直接拼接即闭合
+    x_fill = np.concatenate([x1, x2])
+    y_fill = np.concatenate([y1, y2])
+    ax.fill(x_fill, y_fill, color=fc, alpha=fill_alpha, linewidth=0)
+
+    # ---------- 边缘线 ----------
+    ax.plot(x1, y1, color=ec, alpha=alpha, linestyle=es, linewidth=ew,
+            marker=marker, markersize=markersize,
+            markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+            markeredgewidth=markeredgewidth, **kwargs)
+    ax.plot(x2, y2, color=ec, alpha=alpha, linestyle=es, linewidth=ew,
+            marker=marker, markersize=markersize,
+            markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+            markeredgewidth=markeredgewidth, **kwargs)
+
+    ax.set_aspect("equal", adjustable="box")
+    if label:
+        ax.legend()
+
+    # ---------- 圆心（可选，调试用） ----------
+    if plot_center:
+        plt.scatter(center1[0], center1[1], color=center_color, s=center_size, alpha=alpha)
+        plt.scatter(center2[0], center2[1], color=center_color, s=center_size, alpha=alpha)
+
+
 """
 Flower Algorithms
 """
@@ -237,6 +396,67 @@ def flower(
             plot,
             direction,
             return_petal,
+            **kwargs,
+        )
+
+
+# 单层花（带填充）
+def flower_fill(
+    R=1,
+    r=1,
+    n=4,
+    N=12,
+    rotation=0,
+    color="#0f0",
+    alpha=1,
+    fill_color=None,
+    fill_alpha=0.3,
+    edge_color=None,
+    edge_width=None,
+    edge_style=None,
+    center=(0, 0),
+    points=1000,
+    linestyle="-",
+    linewidth=1,
+    label=None,
+    marker=None,
+    markersize=5,
+    markerfacecolor="r",
+    markeredgecolor="k",
+    markeredgewidth=1,
+    ax=None,
+    plot_center=False,
+    center_color="#0f0",
+    center_size=8,
+    use_degree=True,
+    plot=True,
+    direction="ccw",
+    **kwargs,
+):
+    """单层填充花朵——N 片带填充的圆花瓣均匀排列。
+
+    新增参数（传递给每片花瓣的填充参数）:
+        fill_color, fill_alpha, edge_color, edge_width, edge_style
+    其余参数与 flower 相同。
+    """
+    for i in range(N):
+        flower_petal_fill(
+            R, r, n,
+            (
+                rotation + i * 360 / N + 90
+                if use_degree
+                else rotation + i * 2 * np.pi / N + np.pi / 2
+            ),
+            color=color, alpha=alpha,
+            fill_color=fill_color, fill_alpha=fill_alpha,
+            edge_color=edge_color, edge_width=edge_width, edge_style=edge_style,
+            center=center, points=points,
+            linestyle=linestyle, linewidth=linewidth, label=label,
+            marker=marker, markersize=markersize,
+            markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+            markeredgewidth=markeredgewidth, ax=ax,
+            plot_center=plot_center, center_color=center_color, center_size=center_size,
+            use_degree=use_degree, plot=plot, direction=direction,
             **kwargs,
         )
 
@@ -413,23 +633,16 @@ def oval_petal(
         如果 plot=False:
             tuple: (x1, y1, x2, y2) 计算得到的两个弧的坐标值。
     """
-    # 计算 beta 角度
+    # 计算 beta 角度（弧度）
     x0 = b / (2 * a) * np.sqrt(4 * a**2 - d**2) / (d / 2)
     beta = np.arctan(x0)
-    beta_b1 = np.pi / 2 - beta
-    beta_e1 = np.pi / 2 + beta
-    beta_b2 = 3 * np.pi / 2 - beta
-    beta_e2 = 3 * np.pi / 2 + beta
+    beta_b1_rad = np.pi / 2 - beta
+    beta_e1_rad = np.pi / 2 + beta
+    beta_b2_rad = 3 * np.pi / 2 - beta
+    beta_e2_rad = 3 * np.pi / 2 + beta
 
-    # 角度转换
-    if use_degree:
-        beta_b1 = np.rad2deg(beta_b1)
-        beta_e1 = np.rad2deg(beta_e1)
-        beta_b2 = np.rad2deg(beta_b2)
-        beta_e2 = np.rad2deg(beta_e2)
-        rotation_rad = np.deg2rad(rotation)
-    else:
-        rotation_rad = rotation
+    # rotation 转弧度
+    rotation_rad = np.deg2rad(rotation) if use_degree else rotation
 
     # 计算中心点
     center1 = (center[0], center[1] - d / 2)
@@ -440,10 +653,10 @@ def oval_petal(
     else:
         center1_rot = rotate_point((a, center[1] - d / 2), rotation_rad)
         center2_rot = rotate_point((a, center[1] + d / 2), rotation_rad)
-    # 如果不绘制图像，返回坐标值
+
+    # 如果不绘制图像，返回坐标值（使用弧度做三角运算）
     if not plot:
-        # 计算第一个弧的坐标
-        theta1 = np.linspace(beta_b1, beta_e1, points)
+        theta1 = np.linspace(beta_b1_rad, beta_e1_rad, points)
         x1 = (
             a * np.cos(theta1) * np.cos(rotation_rad)
             - b * np.sin(theta1) * np.sin(rotation_rad)
@@ -455,8 +668,7 @@ def oval_petal(
             + center1_rot[1]
         )
 
-        # 计算第二个弧的坐标
-        theta2 = np.linspace(beta_b2, beta_e2, points)
+        theta2 = np.linspace(beta_b2_rad, beta_e2_rad, points)
         x2 = (
             a * np.cos(theta2) * np.cos(rotation_rad)
             - b * np.sin(theta2) * np.sin(rotation_rad)
@@ -469,6 +681,16 @@ def oval_petal(
         )
 
         return (x1, y1, x2, y2)
+
+    # 绘制时，将弧的起止角按需转为角度制传给 oval_arc
+    if use_degree:
+        beta_b1 = np.rad2deg(beta_b1_rad)
+        beta_e1 = np.rad2deg(beta_e1_rad)
+        beta_b2 = np.rad2deg(beta_b2_rad)
+        beta_e2 = np.rad2deg(beta_e2_rad)
+    else:
+        beta_b1, beta_e1 = beta_b1_rad, beta_e1_rad
+        beta_b2, beta_e2 = beta_b2_rad, beta_e2_rad
 
     # 绘制第一个弧
     oval_arc(
@@ -519,6 +741,97 @@ def oval_petal(
     )
 
 
+# 椭圆花瓣（带填充）
+def oval_petal_fill(
+    a=2,
+    b=1,
+    d=0.5,
+    rotation=0,
+    rot_by_center=True,
+    color="#0f0",
+    alpha=1,
+    fill_color=None,
+    fill_alpha=0.3,
+    edge_color=None,
+    edge_width=None,
+    edge_style=None,
+    center=(0, 0),
+    points=1000,
+    linestyle="-",
+    linewidth=1,
+    label=None,
+    marker=None,
+    markersize=5,
+    markerfacecolor="r",
+    markeredgecolor="k",
+    markeredgewidth=1,
+    ax=None,
+    use_degree=True,
+    plot=True,
+    **kwargs,
+):
+    """
+    绘制一个带填充的椭圆花瓣形状。
+
+    参数（新增/覆盖）:
+        fill_color (str): 填充颜色，默认与 edge_color（或 color）一致。
+        fill_alpha (float): 填充透明度，默认为 0.3。
+        edge_color (str): 边缘线条颜色，默认与 color 一致。
+        edge_width (float): 边缘线条宽度，默认与 linewidth 一致。
+        edge_style (str): 边缘线条样式，默认与 linestyle 一致。
+
+    其余参数与 oval_petal 相同。
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    # 获取椭圆花瓣数据（不绘制）
+    result = oval_petal(
+        a=a, b=b, d=d, rotation=rotation, rot_by_center=rot_by_center,
+        color=color, alpha=alpha, center=center, points=points,
+        linestyle=linestyle, linewidth=linewidth, label=label,
+        marker=marker, markersize=markersize,
+        markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+        markeredgewidth=markeredgewidth, ax=ax,
+        use_degree=use_degree, plot=False,
+        **kwargs,
+    )
+
+    if result is None:
+        return None
+
+    x1, y1, x2, y2 = result
+
+    # 确定填充和边缘参数
+    fc = fill_color if fill_color is not None else (edge_color if edge_color is not None else color)
+    ec = edge_color if edge_color is not None else color
+    ew = edge_width if edge_width is not None else linewidth
+    es = edge_style if edge_style is not None else linestyle
+
+    if not plot:
+        return (x1, y1, x2, y2)
+
+    # 填充：弧1 从右交点→左交点，弧2 从左交点→右交点
+    # 两弧首尾衔接，直接拼接即形成闭合多边形
+    x_fill = np.concatenate([x1, x2])
+    y_fill = np.concatenate([y1, y2])
+    ax.fill(x_fill, y_fill, color=fc, alpha=fill_alpha, linewidth=0)
+
+    # 边缘线
+    ax.plot(x1, y1, color=ec, alpha=alpha, linestyle=es, linewidth=ew,
+            marker=marker, markersize=markersize,
+            markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+            markeredgewidth=markeredgewidth, **kwargs)
+    ax.plot(x2, y2, color=ec, alpha=alpha, linestyle=es, linewidth=ew,
+            marker=marker, markersize=markersize,
+            markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+            markeredgewidth=markeredgewidth, **kwargs)
+
+    ax.set_aspect("equal", adjustable="box")
+    if label:
+        ax.legend()
+
+
 """
 Oval Flower Algorithm
 """
@@ -562,3 +875,96 @@ def oval_flower_a(
             color, alpha, center, points,
             use_degree=False,  # 内部已经转为弧度
         )
+
+
+# 椭圆花瓣花朵（带填充）
+def oval_flower_fill(
+    a=2, b=1, d=0.1, n=12, rotation=0, use_degree=True,
+    color="#0f0", alpha=1,
+    fill_color=None, fill_alpha=0.3,
+    edge_color=None, edge_width=None, edge_style=None,
+    center=(0, 0), points=1000,
+    linestyle="-", linewidth=1, label=None,
+    marker=None, markersize=5,
+    markerfacecolor="r", markeredgecolor="k", markeredgewidth=1,
+    ax=None, plot=True,
+    **kwargs,
+):
+    """椭圆花瓣花朵（带填充，rot_by_center=True）。
+
+    新增参数（传递给每片花瓣的填充参数）:
+        fill_color, fill_alpha, edge_color, edge_width, edge_style
+    其余参数与 oval_flower 相同。
+    """
+    rotation_rad = np.deg2rad(rotation) if use_degree else rotation
+    for i in range(n):
+        oval_petal_fill(
+            a, b, d,
+            rotation_rad + i * 2 * np.pi / n,
+            rot_by_center=True,
+            color=color, alpha=alpha,
+            fill_color=fill_color, fill_alpha=fill_alpha,
+            edge_color=edge_color, edge_width=edge_width, edge_style=edge_style,
+            center=center, points=points,
+            linestyle=linestyle, linewidth=linewidth, label=label,
+            marker=marker, markersize=markersize,
+            markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+            markeredgewidth=markeredgewidth, ax=ax,
+            use_degree=False, plot=plot,
+            **kwargs,
+        )
+
+
+# 椭圆花瓣花朵（带填充，旋转模式 a）
+def oval_flower_a_fill(
+    a=2, b=1, d=0.1, n=12, rotation=0, use_degree=True,
+    color="#0f0", alpha=1,
+    fill_color=None, fill_alpha=0.3,
+    edge_color=None, edge_width=None, edge_style=None,
+    center=(0, 0), points=1000,
+    linestyle="-", linewidth=1, label=None,
+    marker=None, markersize=5,
+    markerfacecolor="r", markeredgecolor="k", markeredgewidth=1,
+    ax=None, plot=True,
+    **kwargs,
+):
+    """椭圆花瓣花朵（带填充，rot_by_center=False）。
+
+    新增参数（传递给每片花瓣的填充参数）:
+        fill_color, fill_alpha, edge_color, edge_width, edge_style
+    其余参数与 oval_flower_a 相同。
+    """
+    rotation_rad = np.deg2rad(rotation) if use_degree else rotation
+    for i in range(n):
+        oval_petal_fill(
+            a, b, d,
+            rotation_rad + i * 2 * np.pi / n,
+            rot_by_center=False,
+            color=color, alpha=alpha,
+            fill_color=fill_color, fill_alpha=fill_alpha,
+            edge_color=edge_color, edge_width=edge_width, edge_style=edge_style,
+            center=center, points=points,
+            linestyle=linestyle, linewidth=linewidth, label=label,
+            marker=marker, markersize=markersize,
+            markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+            markeredgewidth=markeredgewidth, ax=ax,
+            use_degree=False, plot=plot,
+            **kwargs,
+        )
+
+
+__all__ = [
+    "flower_petal",
+    "flower_petal_fill",
+    "flower",
+    "flower_fill",
+    "flowers",
+    "rotate_point",
+    "oval_petal_a",
+    "oval_petal",
+    "oval_petal_fill",
+    "oval_flower",
+    "oval_flower_fill",
+    "oval_flower_a",
+    "oval_flower_a_fill",
+]

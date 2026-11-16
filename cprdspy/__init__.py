@@ -70,78 +70,100 @@ from .CPR_plotly.Lines.line_config import (
     multi_swastika,
 )
 
-from .CPR_plotly.Spirals.spiral_config import (
-    SpiralConfig,
-    SpiralError,
-    config as spiral_config,
-    logSpiral,
-    logSpiral_out,
-    logSpiral_in,
-    n_spiral,
-    n_spiral_rotate,
-    n_spiral_rotate_out,
-    n_spiral_rotate_in,
-    chrysanthemum_petal,
-    chrysanthemum_by_petal,
-    rodincoil,
-    rodincoil_colorful,
-)
+try:
+    from .CPR_plotly.Spirals.spiral_config import (
+        SpiralConfig,
+        SpiralError,
+        config as spiral_config,
+        logSpiral,
+        logSpiral_out,
+        logSpiral_in,
+        n_spiral,
+        n_spiral_rotate,
+        n_spiral_rotate_out,
+        n_spiral_rotate_in,
+        chrysanthemum_petal,
+        chrysanthemum_by_petal,
+        rodincoil,
+        rodincoil_colorful,
+    )
+except ImportError:
+    pass
 
-from .CPR_plotly.Flowers.flower_config import (
-    FlowerConfig,
-    FlowerError,
-    config as flower_config,
-    n_flower_petal,
-    n_flower_arc,
-    n_flowers_flower_arc_with_field,
-    one_flower_petal,
-    one_flower_arc,
-    one_flower_flower_arc_with_field,
-    flowers_flower_by_petal,
-    flowers_flower_by_arc,
-    flowers_flower_by_flower_arc_with_field,
-    flowers_flower_by_petal_multi,
-    flower_by_petal_fill,
-    n_lily_petal_fill,
-)
+try:
+    from .CPR_plotly.Flowers.flower_config import (
+        FlowerConfig,
+        FlowerError,
+        config as flower_config,
+        n_flower_petal,
+        n_flower_arc,
+        n_flowers_flower_arc_with_field,
+        one_flower_petal,
+        one_flower_arc,
+        one_flower_flower_arc_with_field,
+        flowers_flower_by_petal,
+        flowers_flower_by_arc,
+        flowers_flower_by_flower_arc_with_field,
+        flowers_flower_by_petal_multi,
+        flower_by_petal_fill,
+        n_lily_petal_fill,
+    )
+except ImportError:
+    pass
 
-from .CPR_plotly.Waves.wave_config import (
-    WaveConfig,
-    WaveError,
-    config as wave_config,
-    wave_circle_arithmetic,
-    wave_circle_geometric,
-    wave_circle_ari_o,
-    wave_circle_ari_i,
-    wave_circle_ari,
-    wave_circle_pro_o,
-    wave_circle_pro_i,
-    wave_circle_pro,
-)
+try:
+    from .CPR_plotly.Waves.wave_config import (
+        WaveConfig,
+        WaveError,
+        config as wave_config,
+        wave_circle_arithmetic,
+        wave_circle_geometric,
+        wave_circle_ari_o,
+        wave_circle_ari_i,
+        wave_circle_ari,
+        wave_circle_pro_o,
+        wave_circle_pro_i,
+        wave_circle_pro,
+    )
+except ImportError:
+    pass
 
 from .CPR_matplotlib.Flowers.flower import (
     flower as flower_mpl,
     flowers as flowers_mpl,
     flower_petal as flower_petal_mpl,
+    flower_petal_fill as flower_petal_fill_mpl,
+    flower_fill as flower_fill_mpl,
     oval_petal as oval_petal_mpl,
+    oval_petal_fill as oval_petal_fill_mpl,
     oval_petal_a as oval_petal_a_mpl,
     oval_flower as oval_flower_mpl,
+    oval_flower_fill as oval_flower_fill_mpl,
     oval_flower_a as oval_flower_a_mpl,
+    oval_flower_a_fill as oval_flower_a_fill_mpl,
 )
-from .CPR_matplotlib.Waves.waves import (
+from .CPR_matplotlib.Waves.wave import (
     wave as wave_mpl,
+    wave_fill as wave_fill_mpl,
     wave_wave as wave_wave_mpl,
+    wave_wave_fill as wave_wave_fill_mpl,
     wave_ari as wave_ari_mpl,
+    wave_ari_fill as wave_ari_fill_mpl,
     wave_geo as wave_geo_mpl,
+    wave_geo_fill as wave_geo_fill_mpl,
 )
 
 from .CPR_matplotlib.Circles.circle import (
     circle as circle_mpl,
+    circle_fill as circle_fill_mpl,
     draw_circle as draw_circle_mpl,
     circle_p as circle_p_mpl,
     ellipse as ellipse_mpl,
+    ellipse_fill as ellipse_fill_mpl,
     concentric_circles as concentric_circles_mpl,
+    concentric_circles_fill as concentric_circles_fill_mpl,
     concentric_ellipse as concentric_ellipse_mpl,
+    concentric_ellipse_fill as concentric_ellipse_fill_mpl,
 )
 
 from .CPR_matplotlib.Arcs.arc import (
@@ -189,6 +211,21 @@ from .CPR_matplotlib.Lines.line import (
 )
 
 from .CPR_matplotlib.Stars.star import star as star_mpl, stars as stars_mpl
+
+# Rotor 模块 — CPR 内核
+try:
+    from .rotor import (
+        Rotor2D,
+        RotorComposition,
+        trace as rotor_trace,
+        compute_curvature as rotor_curvature,
+        rotor_plot,
+        rotor_plot_mpl,
+        rotor_plot_plotly,
+        plot_rotor_chain,
+    )
+except ImportError:
+    pass
 
 # 导出所有公开API
 __all__ = [
@@ -289,11 +326,15 @@ __all__ = [
     # matplotlib版本的函数
     # 圆形模块
     "circle_mpl",
+    "circle_fill_mpl",
     "draw_circle_mpl",
     "circle_p_mpl",
     "ellipse_mpl",
+    "ellipse_fill_mpl",
     "concentric_circles_mpl",
+    "concentric_circles_fill_mpl",
     "concentric_ellipse_mpl",
+    "concentric_ellipse_fill_mpl",
     # 弧线模块 (matplotlib)
     "arc_point_mpl",
     "arc_point_inverse_mpl",
@@ -334,18 +375,27 @@ __all__ = [
     "flower_mpl",
     "flowers_mpl",
     "flower_petal_mpl",
+    "flower_petal_fill_mpl",
+    "flower_fill_mpl",
     "oval_petal_mpl",
+    "oval_petal_fill_mpl",
     "oval_petal_a_mpl",
     "oval_flower_mpl",
+    "oval_flower_fill_mpl",
     "oval_flower_a_mpl",
+    "oval_flower_a_fill_mpl",
     # 星形模块 (matplotlib)
     "star_mpl",
     "stars_mpl",
     # 波形模块
     "wave_mpl",
+    "wave_fill_mpl",
     "wave_wave_mpl",
+    "wave_wave_fill_mpl",
     "wave_ari_mpl",
+    "wave_ari_fill_mpl",
     "wave_geo_mpl",
+    "wave_geo_fill_mpl",
 ]
 # 版本信息
 __version__ = "0.3.0"

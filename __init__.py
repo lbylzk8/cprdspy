@@ -10,5 +10,12 @@ cprdspy - 一个用于绘制各种几何图形的Python库
 # 从内层包重新导出所有公开API
 from .cprdspy import *
 
+# 注册内层子包到 sys.modules，使 from cprdspy.CPR_plotly1 import * 等导入可用
+import sys as _sys
+
+from .cprdspy import CPR_plotly1
+
+_sys.modules["cprdspy.CPR_plotly1"] = CPR_plotly1
+
 # 版本信息
 __version__ = "0.3.0"

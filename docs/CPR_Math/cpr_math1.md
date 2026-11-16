@@ -1113,8 +1113,381 @@ $$
 
 更进一步，模群 $\mathrm{SL}(2,\mathbb{Z})$ 作用于 $\tau$ 上，将文档中"不同 $R,r$ 的环面"进行分类，相等的 $j$-不变量意味着共形等价的环面（椭圆曲线）。这是 Birch 和 Swinnerton-Dyer 猜想的舞台。
 
+## 八、几何代数与几何微积分——"乘法即维度"的代数归宿
+
+> 前七节从环面走到复结构，线索是：**复数 → 四元数 → 球面旋转**。几何代数（Geometric/Clifford Algebra, GA）把这条线索收束为一个对象——**多重向量（multivector）**；几何微积分（Geometric Calculus, GC）则给出它的导数与积分。本节既给出概念地图，也给出可以直接长进 `cprdspy` 的创意方向。
+
+### 8.1 几何积：一个乘法同时给出度量与维度
+
+对向量 \(a,b\)，定义几何积
+$$
+\boxed{ab=a\cdot b+a\wedge b}
+$$
+其中
+$$
+a\cdot b=\frac12(ab+ba),\qquad a\wedge b=\frac12(ab-ba).
+$$
+- \(a\cdot b\) 是通常的内积（度量、长度、夹角）；
+- \(a\wedge b\) 是外积，表示由 \(a,b\) 张成的**有向平面**（二重向量，bivector）；
+- 二者满足 \(a\wedge a=0,\ e_ie_j=-e_je_i\ (i\neq j)\)。
+
+三维欧氏空间 \(\mathrm{Cl}(3)\) 的基：
+
+| 阶 | 基元素 | 几何意义 | 个数 |
+| --- | --- | --- | --- |
+| 0 | \(1\) | 标量 | 1 |
+| 1 | \(e_1,e_2,e_3\) | 有向线段（向量） | 3 |
+| 2 | \(e_{23},e_{31},e_{12}\) | 有向平面（二重向量） | 3 |
+| 3 | \(I=e_1e_2e_3\) | 有向体积（伪标量） | 1 |
+
+共 \(2^3=8\) 个基元素。一般地 \(\dim\mathrm{Cl}(n)=2^n\)。**每加入一个新维度，代数维数翻倍——这正是"多一个维度用乘法"的代数版本：乘上一个新的基向量，会把原来的对象分裂成"平行部分 + 垂直部分"，于是生成新的几何阶。**
+
+两个同构关系把本文前面的"圆"与"旋转"接回来：
+$$
+\mathrm{Cl}^+(2)=\operatorname{span}\{1,e_{12}\}\cong\mathbb{C},\qquad
+\mathrm{Cl}^+(3)=\operatorname{span}\{1,e_{23},e_{31},e_{12}\}\cong\mathbb{H}.
+$$
+在适当符号约定下，四元数单位可显式对应为
+$$
+\mathbf{i}\leftrightarrow -e_{23},\qquad
+\mathbf{j}\leftrightarrow -e_{31},\qquad
+\mathbf{k}\leftrightarrow -e_{12}.
+$$
+因此第三节的四元数并不是另一套代数，而是 \(\mathrm{Cl}^+(3)\) 的一个坐标影子。
+
+**转子（rotor）** 是几何代数中的旋转算子。对单位二重向量 \(B\)（\(B^2=-1\)）：
+$$
+R=e^{-B\theta/2}=\cos\frac{\theta}{2}-\hat B\sin\frac{\theta}{2},\qquad
+v\mapsto Rv\tilde R=RvR^{-1},
+$$
+其中 \(\tilde R\) 是反转（reverse）。与矩阵或欧拉角相比，转子有三个直接好处：
+
+1. **无坐标**：旋转平面就是 \(B\) 本身；
+2. **无万向锁**：任意维数、任意旋转平面都统一处理；
+3. **可复合**：\(R_2R_1\) 仍是转子，"多一种运动"就是转子相乘。
+
+一个漂亮的几何事实是：**任意旋转都是两次反射的复合**。对单位向量 \(a\)，反射为 \(v\mapsto -ava\)；于是
+$$
+v\mapsto -b(-ava)b=(ba)v(ab)=Rv\tilde R,\qquad R=ba.
+$$
+这正是万花筒（kaleidoscope）与反射群图案的代数基础：给定几面"镜子"，反复做反射和它们的乘积，就能生成整个图案群。
+
+### 8.2 本文曲线的转子写法
+
+**平面外摆线 / 傅里叶级数。** 令 \(I=e_1e_2\)，则
+$$
+\boxed{\gamma(t)=\sum_{i=1}^{n}r_i\,R_i(t)\,e_1\,\tilde R_i(t)},\qquad
+R_i(t)=e^{-\frac12 I(\omega_i t+\varphi_i)}.
+$$
+展开即本文的
+$$
+x=\sum_i r_i\cos(\omega_i t+\varphi_i),\qquad
+y=\sum_i r_i\sin(\omega_i t+\varphi_i).
+$$
+转子写法的价值在于：它不依赖 \(\cos/\sin\) 的坐标记账，而且把"每个本轮是一个旋转"直接写成了代数。
+
+**三维球面运动。** 把参考轴换成 \(e_3\)，把旋转平面换成任意二重向量。单个固定平面的转子在球面上画出圆；要得到球面 Lissajous，需要用两个不同平面的转子相乘：
+$$
+\boxed{\gamma(t)=\sum_{i=1}^{n}r_i\,R_i(t)\,e_3\,\tilde R_i(t)},\qquad
+R_i(t)=e^{-\frac12\alpha_i t\,e_{23}}\,e^{-\frac12\beta_i t\,e_{31}}.
+$$
+这与第六节（四元数嵌入）的公式逐字对应，但不再需要"把四元数翻译成矩阵"这一步。每一项都是**被转子转动的一根参考轴**；求和就是运动的叠加，两个转子不交换时便产生球面 Lissajous。
+
+**环面螺旋线。** 设大圆在 \(I_{12}=e_{12}\) 平面内，径向单位向量
+$$
+\rho(u)=e^{-\frac12 I_{12}u}\,e_1\,e^{\frac12 I_{12}u},
+$$
+则环面螺旋线可写成两个转子的复合：
+$$
+\boxed{\gamma(u,v)=(R+r\cos v)\,\rho(u)+r\sin v\,e_3}
+$$
+或更"转子化"地，
+$$
+\gamma=R\rho+r\,R_v\rho\tilde R_v,\qquad
+R=e^{-\frac12 I_{12}u},\quad R_v=e^{-\frac12(\rho\wedge e_3)v}.
+$$
+第一个转子驱动大圆，第二个转子在随动的子午面 \(\rho\wedge e_3\) 内驱动小圆。**频率比 \(v/u=\omega\) 就是两个转子的转速比：有理数→闭合的环面纽结，无理数→稠密缠绕。** 这正是第一节（环面纽结）的转子语言版本。
+
+**Hopf 纤维化。** 单位转子群 \(\mathrm{Spin}(3)\cong S^3\)。Hopf 映射可写成
+$$
+h:\mathrm{Spin}(3)\to S^2,\qquad h(q)=q\,e_3\,\tilde q.
+$$
+它的纤维是
+$$
+q\mapsto q\,e^{-e_3\theta/2}.
+$$
+也就是说，**Hopf 纤维正是"绕参考轴 \(e_3\) 的转子规范自由度"**；底空间 \(S^2\) 上的点是被转子转过去的 \(e_3\) 方向。第二节的 Hopf 纤维化、第三节的四元数、第六节的球面傅里叶，在这里被同一个 sandwich 乘积 \(q\,e_3\,\tilde q\) 统一。
+
+### 8.3 几何微积分：一个导数统一梯度、散度与旋度
+
+在 \(\mathrm{Cl}(n)\) 中定义向量导数
+$$
+\nabla=\sum_{k=1}^{n}e^k\partial_k,\qquad e^k\cdot e_j=\delta^k_j.
+$$
+对向量场 \(F\)，有基本的**几何微积分乘积法则**
+$$
+\boxed{\nabla F=\nabla\cdot F+\nabla\wedge F}.
+$$
+- \(\nabla\cdot F\) 是标量——散度；
+- \(\nabla\wedge F\) 是二重向量——旋度；
+- 对数量场 \(f\)，\(\nabla f\) 是梯度。
+
+在三维中，旋度与经典叉积只差一个 Hodge 对偶：
+$$
+\nabla\wedge F=I(\nabla\times F),\qquad I=e_1e_2e_3.
+$$
+所以"梯度、散度、旋度"不是三个算子，而是同一个 \(\nabla\) 的三个阶分量。
+
+**基本定理（Fundamental Theorem of Geometric Calculus）** 统一了微积分基本定理、Green 公式、Gauss 散度定理、Stokes 定理与 Cauchy 定理：
+$$
+\boxed{\int_V\dot\nabla\dot F\,dV=\oint_{\partial V}nF\,dS},
+$$
+其中点号表示 \(\dot\nabla\) 只作用于其后的 \(\dot F\)，\(n\) 是外法向。取 \(F\) 为标量得到梯度定理；取 \(F\) 为向量同时得到散度定理与旋度定理；在二维复情形，取单演函数即得 Cauchy 积分定理。
+
+**曲线几何的无坐标公式。** 设曲线 \(\gamma(t)\)，记 \(v=\dot\gamma,\ a=\ddot\gamma,\ \dot a=\dddot\gamma\)，则
+$$
+\boxed{\kappa=\frac{|v\wedge a|}{|v|^3}},\qquad
+\boxed{\tau=\frac{(v\wedge a\wedge\dot a)\,I^{-1}}{|v\wedge a|^2}}.
+$$
+曲率向量为
+$$
+\mathbf{k}=\frac{(a\wedge v)v}{|v|^4},\qquad |\mathbf{k}|=\kappa,
+$$
+它把"弯曲方向"也保留了下来，而不仅仅是曲率大小。与经典公式 \(\kappa=|\gamma'\times\gamma''|/|\gamma'|^3\)、\(\tau=(\gamma'\times\gamma'')\cdot\gamma'''/|\gamma'\times\gamma''|^2\) 相比，GA 版本不需要叉积、不需要选坐标，而且可以直接推广到任意维数。
+
+**活动标架的转子方程。** 若 \(R(t)\) 携带一个标准正交标架，定义角速度二重向量
+$$
+\Omega=-2\tilde R\dot R,
+$$
+则
+$$
+\dot R=-\frac12\Omega R.
+$$
+整条 Frenet 方程被压缩成一个转子微分方程；\(|\Omega|\) 是转速，\(\Omega\) 的方向是瞬时旋转平面。对动画与管道生成来说，这比逐点求解 Frenet 标架更稳定——尤其在直线段 Frenet 标架会退化，而转子方程不会。
+
+**曲线流。** 几何微积分最自然的应用之一是几何演化方程。曲线缩短流
+$$
+\partial_t\gamma=\partial_s^2\gamma=\kappa N
+$$
+在 GA 中无需坐标即可离散化；它可以把任意初始曲线"熨平"成圆，也可以反过来作为生成艺术中的形态演化引擎。
+
+### 8.4 共形几何代数（CGA）：圆、球与 Möbius 变换
+
+共形几何代数 \(\mathrm{Cl}(4,1)\) 在三维欧氏空间中加入两个零向量 \(e_0,e_\infty\)：
+$$
+e_0^2=e_\infty^2=0,\qquad e_0\cdot e_\infty=-1.
+$$
+点 \(x\in\mathbb{R}^3\) 嵌入为
+$$
+X=x+\frac12 x^2e_\infty+e_0,\qquad X^2=0.
+$$
+球、平面、圆都成为单个 blade：
+$$
+S=X_c-\frac12 r^2e_\infty\quad(\text{球心 }X_c,\text{半径 }r),\qquad
+\Pi=n+d\,e_\infty\quad(\text{单位法向 }n),
+$$
+球面由 \(X\cdot S=0\) 给出，平面由 \(X\cdot\Pi=0\) 给出。两个球 \(S_1,S_2\) 的交是圆（对偶表示中记为 \(S_1\wedge S_2\)）；三个球的交是点对。**"点、线、面、圆、球"第一次被放进同一个线性空间。**
+
+更重要的是，**Möbius 变换就是 versor 的 sandwich 作用**：
+$$
+X\mapsto M X\tilde M.
+$$
+反射、旋转、平移、缩放、球反演全部是同一类对象。对生成艺术而言，这意味着：
+
+- **圆反演万花筒**：选一组反演圆，反复做 \(X\mapsto M X\tilde M\)，自动生成极限集/分形图案；
+- **Dupin 四次圆纹曲面**：环面在 Möbius 变换下的像，可在 CGA 中紧凑表示；
+- **立体投影与 Hopf**：\(S^3\to\mathbb{R}^3\) 的立体投影把 Clifford 环面变成 \(\mathbb{R}^3\) 中的环面，把 Hopf 纤维变成 **Villarceau 圆**——环面上每一根"斜着绕两圈"的圆，都是一条 Hopf 纤维。这是把第二节的抽象纤维化变成可画图像的捷径。
+
+**环面的球面族包络表示。** 环面本身不是 CGA 的单个 blade，但它是一个单参数球面族的包络：球心在大圆上、半径固定为 \(r\)，
+$$
+S(u)=C(u)-\frac12 r^2e_\infty,\qquad
+C(u)=c(u)+\frac12 c(u)^2e_\infty+e_0,\quad
+c(u)=R\,e^{-\frac12 I_{12}u}e_1e^{\frac12 I_{12}u}.
+$$
+相邻球面的交线在极限下收敛到子午圆；所有子午圆的并集就是环面。这个视角把"环面 = 圆沿圆扫掠"写成了一个包络问题，非常适合做参数化曲面生成。
+
+### 8.5 创意与前瞻建议：让 GA/GC 长进 cprdspy
+
+下面按"可立即落地"与"研究型"两组给出建议。
+
+**A. 可立即落地的库扩展**
+
+1. **`cprdspy.ga` 转子曲线模块。** 提供 `rotor(plane, angle)`、`rotor_curve(...)`、`epicycles_rotor(...)`、`spherical_epicycles(...)`。用户在 API 里直接指定"旋转平面 + 转速 + 相位"，而不必写 \(\cos/\sin\)。2D 用 \(\mathrm{Cl}(2)\)，3D 用 \(\mathrm{Cl}(3)\)，代码路径完全一致。
+
+2. **曲率/挠率诊断与着色。** 对库中现有的螺线、波形、花朵、星形统一计算 \(\kappa(t),\tau(t)\)，用颜色或线宽编码；标出 \(\kappa=0\)（拐点）与 \(\tau=0\)（局部共面）的位置。这既是数学诊断，也是新的视觉语言。
+
+3. **无奇异标架与管道/缎带生成。** 用转子平行移动或双重反射构造沿曲线的光滑标架，再把圆/多边形截面挤出成管道、缎带。与 Plotly 3D 结合，可把环面纽结变成可交互的"实体雕塑"。重点解决 Frenet 标架在直线段的退化问题。
+
+4. **转子关键帧动画。** 两个姿态 \(R_0,R_1\) 之间的测地插值为
+   $$
+   R(t)=R_0\big(R_0^{-1}R_1\big)^t,\qquad t\in[0,1],
+   $$
+   即 \(S^3\) 上的 slerp。用转子关键帧驱动 `FuncAnimation`/Plotly frames，彻底告别欧拉角万向锁。
+
+5. **轻量 Möbius 后处理层。** 先实现二维 Möbius 变换的 \(4\times4\) 实矩阵表示（作用于齐次坐标），即可对任意已生成的平面图案做反演、旋转、平移、缩放；后续再用 CGA 扩展到三维球面/环面。典型的"后处理即创作"：一张曼陀罗 → 一次圆反演 → 一张新曼陀罗。
+
+6. **Hopf/Clifford 环面可视化。** 用立体投影把 \(S^3\) 中的 Clifford 环面画到 \(\mathbb{R}^3\)，并把不同 Hopf 纤维染成不同颜色。由于每条纤维都是 Villarceau 圆，这个演示会同时讲清"Hopf 纤维化、环面纽结、转子规范"三件事，非常适合作为 `cprdspy` 的旗舰示例。
+
+7. **反射群万花筒生成器。** 用 \(v\mapsto -ava\) 的反射和它们的乘积生成二面体群/考克斯特群图案；输入几面镜子，输出整个轨道。与现有的曼陀罗生成器相比，这种方法天然保证对称群的封闭性。
+
+**B. 研究型 / 前瞻方向**
+
+8. **Clifford 傅里叶与"转子谱"。** 把复数单位 \(i\) 换成二重向量 \(I\)，把信号值换成多重向量，得到 Clifford/超复 Fourier 变换；每个频率分量不再是一根复指数，而是一个旋转平面中的转子。可以研究：任意空间曲线的转子谱稀疏性、收敛速度，以及"用少量转子逼近目标曲线"的算法。这会直接升级本文的计算外摆线。
+
+9. **环面上的 Dirac 算子与旋量傅里叶。** 在平坦环面 \(T^n\) 上，Dirac 算子
+   $$
+   D=\sum_{k=1}^{n}e_k\partial_k
+   $$
+   的特征函数是旋量值的傅里叶模态；\(D\psi=0\) 的解（单演函数，monogenic functions）是复解析函数在高维的推广。第七节的椭圆函数可以看作"双周期单演函数"的特例。这条线把环面、复结构、傅里叶与旋量真正接在一起。
+
+10. **几何微积分驱动的曲线流生成艺术。** 用 \(\partial_t\gamma=\partial_s^2\gamma\)（曲线缩短流）、Willmore 流等几何演化方程生成形态；GA 提供无坐标、任意维、易离散的公式。可以做成"输入一笔涂鸦，输出一族演化图案"的交互工具。
+
+11. **GA 等变神经网络（前瞻）。** 把网络特征从标量/向量升级为多重向量，构造对旋转、反射等变的 Clifford 层（Clifford neural layers、Geometric Algebra Transformer 等方向）。对 `cprdspy` 的意义：可以从手绘草图直接学习曲线/图案的参数，而且天然尊重旋转与镜像对称。
+
+12. **时空代数（STA）可视化。** 在 \(\mathrm{Cl}(1,3)\) 中，Lorentz boost 是时间-空间平面内的转子；摆线、螺旋线可以解释为世界线，光锥、双曲运动、相对论视觉效应都可以做成教学动画。这是"几何代数 + 物理美学"的交叉题材。
+
+13. **工具链建议。** Python 端首选 `clifford`（数值）与 `galgebra`（符号），`kingdon` 可作为高性能替代；Web 端 `ganja.js` 可直接在浏览器里做 GA 交互。对 `cprdspy` 建议把 GA 做成**可选依赖**，并为 \(\mathrm{Cl}(2),\mathrm{Cl}(3)\) 提供纯 NumPy 回退，保证无 GA 库时核心绘图仍可用。
+
+**如果只做一件事**：先做第 2 条（曲率/挠率着色）和第 3 条（无奇异管道）。它们不需要引入完整 GA 依赖，却能立刻让现有曲线生成器获得"可解释的几何"与"可实体化的三维形态"，是从本文数学走向可视化的最短路径。
+
+### 8.6 与本文主题的对应表
+
+| 本文对象 | 几何代数 / 几何微积分表述 |
+| --- | --- |
+| 平面旋转、复数 \(e^{i\theta}\) | 转子 \(R=e^{-I\theta/2}\)，\(I=e_1e_2\) |
+| 四元数旋转 | 偶子代数 \(\mathrm{Cl}^+(3)\cong\mathbb{H}\) |
+| 球面运动、球面傅里叶 | \(\gamma=\sum_i r_iR_ie_3\tilde R_i\) |
+| 环面、Clifford 环面 | 两个交换/嵌套转子的复合 |
+| 环面纽结的闭合条件 | 两个转子转速比的有理性 |
+| Hopf 纤维化 | \(h(q)=qe_3\tilde q\) 的纤维 \(qe^{-e_3\theta/2}\) |
+| 傅里叶级数、DFT | 转子谱 / Clifford Fourier |
+| 曲率、挠率 | \(\kappa=\frac{|v\wedge a|}{|v|^3}\)，\(\tau=\frac{(v\wedge a\wedge\dot a)I^{-1}}{|v\wedge a|^2}\) |
+| 复结构、椭圆函数 | 二重向量 \(I\) 作为复结构；单演函数 |
+| 梯度/散度/旋度/Stokes | 同一个 \(\nabla\) 与基本定理 |
+
+**Python 验证 — 转子外摆线与几何微积分曲率：**
+```python
+# pip install clifford numpy matplotlib
+import numpy as np
+import matplotlib.pyplot as plt
+from clifford import Cl
+
+
+def scalar(M):
+    """多重向量的标量部分 (clifford 中 value[0] 即标量系数)"""
+    return float(np.real(M.value[0]))
+
+
+def mag(M):
+    """多重向量的模长: |M| = sqrt(|<~M M>_0|)"""
+    return float(np.sqrt(abs(scalar(~M * M))))
+
+
+# ---------- (1) 平面转子外摆线：Cl(2) ----------
+layout2, blades2 = Cl(2)
+e1, e2 = blades2['e1'], blades2['e2']
+I = e1 ^ e2                         # 复结构
+
+
+def rotor(B, theta):
+    """单位二重向量 B 张成平面内、转角 theta 的转子"""
+    return (-0.5 * theta * B).exp()
+
+
+def to_xy(v):
+    """取出多重向量的 e1, e2 坐标 (bitmask: e1=1, e2=2)"""
+    return float(np.real(v.value[1])), float(np.real(v.value[2]))
+
+
+# 验证：R e1 ~R = cos(theta) e1 + sin(theta) e2
+theta = 0.7
+R = rotor(I, theta)
+print("R e1 ~R =", R * e1 * ~R)
+
+coeffs = [(2.0, 1, 0.0), (1.0, 3, 0.5), (0.5, -5, 1.2), (0.25, 8, 0.0)]
+t = np.linspace(0, 2 * np.pi, 2000)
+
+# (a) 逐点用 GA 计算（抽样，验证用）
+pts = []
+for ti in t[::50]:
+    acc = 0 * e1
+    for r, w, phi in coeffs:
+        R = rotor(I, w * ti + phi)
+        acc += r * (R * e1 * ~R)
+    pts.append(to_xy(acc))
+pts = np.array(pts)
+
+# (b) 等价的 numpy 闭式（批量绘图用）
+x = sum(r * np.cos(w * t + phi) for r, w, phi in coeffs)
+y = sum(r * np.sin(w * t + phi) for r, w, phi in coeffs)
+
+plt.figure(figsize=(6, 6))
+plt.plot(x, y, lw=1, label='转子外摆线')
+plt.plot(pts[:, 0], pts[:, 1], 'r.', ms=8, label='GA 逐点验证')
+plt.axis('equal')
+plt.legend()
+plt.title(r'Rotor epicycles: $\sum_i r_i R_i e_1 \tilde{R}_i$')
+plt.show()
+
+# ---------- (2) 几何微积分：环面螺旋线的 κ, τ ----------
+layout3, blades3 = Cl(3)
+E1, E2, E3 = blades3['e1'], blades3['e2'], blades3['e3']
+I3 = E1 ^ E2 ^ E3
+
+R0, r0, omega = 2.0, 0.6, 7
+s = np.linspace(0, 2 * np.pi, 1200)
+X = (R0 + r0 * np.cos(omega * s)) * np.cos(s)
+Y = (R0 + r0 * np.cos(omega * s)) * np.sin(s)
+Z = r0 * np.sin(omega * s)
+
+
+def d(q):
+    return np.gradient(q, s)
+
+
+vx, vy, vz = d(X), d(Y), d(Z)
+ax, ay, az = d(vx), d(vy), d(vz)
+jx, jy, jz = d(ax), d(ay), d(az)
+
+kappa = np.zeros_like(s)
+tau = np.zeros_like(s)
+for i in range(len(s)):
+    v = vx[i] * E1 + vy[i] * E2 + vz[i] * E3
+    a = ax[i] * E1 + ay[i] * E2 + az[i] * E3
+    da = jx[i] * E1 + jy[i] * E2 + jz[i] * E3
+    B = v ^ a
+    kappa[i] = mag(B) / mag(v) ** 3
+    tau[i] = scalar((B ^ da) * I3.inv()) / mag(B) ** 2
+
+fig = plt.figure(figsize=(14, 5))
+ax1 = fig.add_subplot(121, projection='3d')
+p = ax1.scatter(X, Y, Z, c=kappa, cmap='plasma', s=4)
+ax1.set_title('环面螺旋线：按曲率 κ 着色')
+fig.colorbar(p, ax=ax1, shrink=0.6, label='κ')
+ax2 = fig.add_subplot(122)
+ax2.plot(s, kappa, label='曲率 κ')
+ax2.plot(s, tau, label='挠率 τ', alpha=0.7)
+ax2.set_xlabel('s')
+ax2.legend()
+ax2.set_title('几何微积分：κ 与 τ')
+plt.tight_layout()
+plt.show()
+```
+
+**延伸阅读（按入门顺序）**
+
+- D. Hestenes, *Clifford Algebra to Geometric Calculus* —— 几何微积分的源头。
+- C. Doran & A. Lasenby, *Geometric Algebra for Physicists* —— 物理与可视化直觉最好的教材之一。
+- E. Hitzer, *Introduction to Clifford's Geometric Algebra* —— 简短综述，适合快速建立坐标系。
+- L. Dorst, D. Fontijne & S. Mann, *Geometric Algebra for Computer Science* —— CGA 与图形学的桥梁。
+- `clifford`（Python）、`galgebra`（符号）、`ganja.js`（WebGL）—— 可立即上手的工具链。
+
+**本节小结**：如果说环面是"圆的乘积"，那么几何代数就是"圆与旋转的代数"——它用一个几何积同时编码度量、平面与旋转；几何微积分则让这个代数可以求导、积分与流动。本文从复数出发，经过四元数，最终抵达的不是一个终点，而是一整套可以继续生长的语言。
+
 ---
 
-**小结**：这份文档从环面出发，经螺旋线、摆线、傅里叶级数，最终抵达三维球面运动——这条线索本身就是数学中"圆"的万有性（universality）的缩影。上述七个方向——纽结拓扑、Hopf 纤维化、四元数代数、可积系统、计算外摆线、高维推广、复解析——每一个都是同一主题的不同侧面。它们共同指向一个深刻的数学事实：
+**小结**：这份文档从环面出发，经螺旋线、摆线、傅里叶级数，最终抵达三维球面运动——这条线索本身就是数学中"圆"的万有性（universality）的缩影。上述八个方向——纽结拓扑、Hopf 纤维化、四元数代数、可积系统、计算外摆线、高维推广、复解析、几何代数与几何微积分——每一个都是同一主题的不同侧面。它们共同指向一个深刻的数学事实：
 
 **圆是最简单的周期运动，而环面是圆与圆的乘积。当我们在环面上绕行时，既在画几何图案，也在写动力学方程，还在编织拓扑不变量——这三者本是一回事。**
+
+**而几何代数把这"一回事"写成了一个乘法：度量、旋转与维度，都是同一个几何积的不同分量。**

@@ -2,7 +2,7 @@ from typing import Tuple, List, Optional, Union, Dict, Any, Literal
 import numpy as np
 import plotly.graph_objects as go
 from functools import lru_cache
-from cprdspy.CPR_plotly.Circles.circle_config import circle
+from ..Circles.circle_config import circle
 
 
 class SpiralError(Exception):

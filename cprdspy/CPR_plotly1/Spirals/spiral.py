@@ -7,28 +7,36 @@ def logSpiral(
     a=1,
     b=1,
     cyc=0.5,
-    color="b",
+    color="blue",
     theta=0,
     rotation=0,
     direction="both",
     alpha=1,
     line_width=1.0,
+    use_degree=True,
     plot=True,
 ):
     """绘制广义对数螺线。
 
-    参数说明：
-    - n: 花瓣/对称数（影响基底 cos(pi/n)）
-    - a, b: x/y 方向缩放（可做椭圆化）
-    - cyc: 周期数（每个周期为 2π）
-    - color: 线颜色
-    - theta: 全局相位偏移
-    - rotation: 额外角度偏移
-    - direction: 'both'|'in'|'out' 控制绘制方向
-    - alpha: 透明度
-    - line_width: 线宽
-    - plot: 是否返回 go.Scatter 轨迹
+    参数:
+        n: 花瓣/对称数（影响基底 cos(pi/n)）
+        a, b: x/y 方向缩放（可做椭圆化）
+        cyc: 周期数（每个周期为 2π）
+        color: 线颜色
+        theta: 全局相位偏移（度或弧度取决于 use_degree）
+        rotation: 额外角度偏移（度或弧度取决于 use_degree）
+        direction: 'both'|'in'|'out' 控制绘制方向
+        alpha: 透明度
+        line_width: 线宽
+        use_degree (bool): theta 和 rotation 是否使用角度制，默认 True（度）。
+        plot (bool): 是否返回 go.Scatter 轨迹。
+
+    返回:
+        plotly.graph_objs.Scatter 或 tuple (x, y)
     """
+    theta_rad = np.deg2rad(theta) if use_degree else theta
+    rot_rad = np.deg2rad(rotation) if use_degree else rotation
+
     if direction not in ("both", "in", "out"):
         raise ValueError("direction must be 'both', 'in' or 'out'")
 
@@ -39,8 +47,9 @@ def logSpiral(
     else:  # in
         t = np.linspace(0, -cyc * 2 * np.pi, 1000)
 
+    # r 随角度成几何增长/衰减：基于 (cos(pi/n)) ** (-n * t / pi)
     r = (np.cos(np.pi / n)) ** (-n * t / np.pi)
-    ang = t + theta + rotation
+    ang = t + theta_rad + rot_rad
     x = a * r * np.cos(ang)
     y = b * r * np.sin(ang)
 
@@ -55,145 +64,145 @@ def logSpiral(
         opacity=alpha,
         showlegend=False,
     )
-    return trace
+    return [trace]
 
 
-def nSpiral(n=4, N=4, cyc=0.5, color="b", theta=0, rotation=0, line_width=1.0):
-    """绘制 n 瓣螺旋。"""
+def nSpiral(
+    n=4,
+    a=1,
+    N=4,
+    cyc=0.5,
+    color="blue",
+    theta=0,
+    rotation=0,
+    direction="both",
+    line_width=1.0,
+    use_degree=True,
+):
+    """n 边形螺旋。
+
+    theta, rotation: 度或弧度取决于 use_degree。
+    use_degree (bool): 默认 True（度）。
+
+    返回:
+        list: 包含所有轨迹的列表。
+    """
+    theta_rad = np.deg2rad(theta) if use_degree else theta
+    rot_rad = np.deg2rad(rotation) if use_degree else rotation
     traces = []
     for i in range(N):
-        t1 = logSpiral(
-            n,
-            1,
-            1,
-            cyc,
-            color,
-            theta + i * 2 * np.pi / N,
-            rotation,
-            "both",
-            1,
-            line_width,
-        )
-        t2 = logSpiral(
-            n,
-            -1,
-            1,
-            cyc,
-            color,
-            -theta + i * 2 * np.pi / N,
-            -rotation,
-            "both",
-            1,
-            line_width,
-        )
+        t1 = logSpiral(n, a, 1, cyc, color, theta_rad + i * 2 * np.pi / N, rot_rad,
+                       direction, 1, line_width, use_degree=False)
+        t2 = logSpiral(n, a, 1, cyc, color, -theta_rad + i * 2 * np.pi / N, -rot_rad,
+                       direction, 1, line_width, use_degree=False)
         if t1:
-            traces.append(t1)
+            traces.extend(t1)
         if t2:
-            traces.append(t2)
+            traces.extend(t2)
     return traces
 
 
-def logSpiral_in_out(n, a, b, cyc, color="b", theta=0):
-    """绘制双向对数螺线。"""
-    t = np.linspace(-cyc * 2 * np.pi, cyc * 2 * np.pi, 1000)
-    x = a * (np.cos(np.pi / n)) ** (-n * t / np.pi) * np.cos(t + theta)
-    y = b * (np.cos(np.pi / n)) ** (-n * t / np.pi) * np.sin(t + theta)
-    trace = go.Scatter(
-        x=x, y=y, mode="lines", line=dict(color=color), showlegend=False
-    )
-    return trace
+def nSpirals(
+    n=4,
+    N=4,
+    cyc=0.5,
+    color="blue",
+    theta=0,
+    rotation=0,
+    direction="both",
+    line_width=1.0,
+    use_degree=True,
+):
+    """多头 n 边形螺旋。
 
+    theta, rotation: 度或弧度取决于 use_degree。
+    use_degree (bool): 默认 True（度）。
 
-def logSpiral_out(n, a, b, cyc, color="b", theta=0):
-    """绘制外向对数螺线。"""
-    t = np.linspace(0, cyc * 2 * np.pi, 100)
-    x = a * (np.cos(np.pi / n)) ** (-n * t / np.pi) * np.cos(t + theta)
-    y = b * (np.cos(np.pi / n)) ** (-n * t / np.pi) * np.sin(t + theta)
-    trace = go.Scatter(
-        x=x, y=y, mode="lines", line=dict(color=color), showlegend=False
-    )
-    return trace
-
-
-def logSpiral_in(n, a, b, cyc, color="b", theta=0):
-    """绘制内向对数螺线。"""
-    t = np.linspace(0, -cyc * 2 * np.pi, 100)
-    x = a * (np.cos(np.pi / n)) ** (-n * t / np.pi) * np.cos(t + theta)
-    y = b * (np.cos(np.pi / n)) ** (-n * t / np.pi) * np.sin(t + theta)
-    trace = go.Scatter(
-        x=x, y=y, mode="lines", line=dict(color=color), showlegend=False
-    )
-    return trace
-
-
-def n_spiral(n, cyc, color, theta=0):
-    """绘制 n 个螺旋。"""
+    返回:
+        list: 包含所有轨迹的列表。
+    """
+    theta_rad = np.deg2rad(theta) if use_degree else theta
+    rot_rad = np.deg2rad(rotation) if use_degree else rotation
     traces = []
-    for i in range(n):
-        t1 = logSpiral(n, 1, 1, cyc, color, theta + i * 2 * np.pi / n)
-        t2 = logSpiral(n, -1, 1, cyc, color, theta + i * 2 * np.pi / n)
+    for i in range(N):
+        t1 = logSpiral(n, 1, 1, cyc, color, theta_rad + i * 2 * np.pi / N, rot_rad,
+                       direction, 1, line_width, use_degree=False)
+        t2 = logSpiral(n, -1, 1, cyc, color, -theta_rad + i * 2 * np.pi / N, -rot_rad,
+                       direction, 1, line_width, use_degree=False)
         if t1:
-            traces.append(t1)
+            traces.extend(t1)
         if t2:
-            traces.append(t2)
+            traces.extend(t2)
     return traces
 
 
-def n_spiral_rotate(n, cyc, color, alpha=0, theta=0):
-    """绘制旋转的 n 个螺旋。"""
+def calla_petal(
+    n=4,
+    a=1,
+    cyc=1.25,
+    theta=0,
+    color="blue",
+    rotation=0,
+    direction="both",
+    line_width=1.0,
+    use_degree=True,
+):
+    """马蹄莲花瓣。
+
+    theta, rotation: 度或弧度取决于 use_degree。
+    use_degree (bool): 默认 True（度）。
+
+    返回:
+        list: 包含两个螺旋轨迹的列表。
+    """
+    theta_rad = np.deg2rad(theta) if use_degree else theta
+    rot_rad = np.deg2rad(rotation) if use_degree else rotation
     traces = []
-    for i in range(n):
-        t1 = logSpiral(n, 1, 1, cyc, color, alpha + theta + i * 2 * np.pi / n)
-        t2 = logSpiral(n, -1, 1, cyc, color, alpha - theta + i * 2 * np.pi / n)
-        if t1:
-            traces.append(t1)
-        if t2:
-            traces.append(t2)
-    return traces
-
-
-def n_spiral_rotate_out(n, cyc, color, theta=0):
-    """绘制旋转的外向 n 个螺旋。"""
-    traces = []
-    for i in range(n):
-        t1 = logSpiral_out(n, 1, 1, cyc, color, theta + i * 2 * np.pi / n)
-        t2 = logSpiral_out(n, -1, 1, cyc, color, -theta + i * 2 * np.pi / n)
-        if t1:
-            traces.append(t1)
-        if t2:
-            traces.append(t2)
-    return traces
-
-
-def n_spiral_rotate_in(n, cyc, color, theta=0):
-    """绘制旋转的内向 n 个螺旋。"""
-    traces = []
-    for i in range(n):
-        t1 = logSpiral_in(n, 1, 1, cyc, color, theta + i * 2 * np.pi / n)
-        t2 = logSpiral_in(n, -1, 1, cyc, color, -theta + i * 2 * np.pi / n)
-        if t1:
-            traces.append(t1)
-        if t2:
-            traces.append(t2)
-    return traces
-
-
-def calla_petal(n, cyc, theta, color):
-    """绘制马蹄莲花瓣。"""
-    traces = []
-    t1 = logSpiral(n, 1, 1, cyc * 1.25, color, theta)
-    t2 = logSpiral(n, -1, 1, cyc * 1.25, color, -theta)
+    t1 = logSpiral(n, a, 1, cyc, color, theta_rad, rot_rad, direction, 1, line_width, use_degree=False)
+    t2 = logSpiral(n, -a, 1, cyc, color, -theta_rad, -rot_rad, direction, 1, line_width, use_degree=False)
     if t1:
-        traces.append(t1)
+        traces.extend(t1)
     if t2:
-        traces.append(t2)
+        traces.extend(t2)
     return traces
 
 
-def calla_by_petal(n, cyc, N, theta, colors):
-    """绘制多个马蹄莲花瓣。"""
+def calla(
+    n=4,
+    a=1,
+    cyc=1.25,
+    N=12,
+    theta=0,
+    colors=None,
+    rotation=0,
+    direction="both",
+    line_width=1.0,
+    use_degree=True,
+):
+    """完整马蹄莲。
+
+    theta, rotation: 度或弧度取决于 use_degree。
+    use_degree (bool): 默认 True（度）。
+
+    返回:
+        list: 包含所有轨迹的列表。
+    """
+    if colors is None:
+        colors = ["red", "green", "blue"] * 4
+    theta_rad = np.deg2rad(theta) if use_degree else theta
+    rot_rad = np.deg2rad(rotation) if use_degree else rotation
     traces = []
     for i in range(N):
-        petal_traces = calla_petal(n, cyc, theta + i * 2 * np.pi / N, colors[i])
+        petal_traces = calla_petal(n, a, cyc, theta_rad + i * 2 * np.pi / N, colors[i],
+                                   rot_rad, direction, line_width, use_degree=False)
         traces.extend(petal_traces)
     return traces
+
+
+__all__ = [
+    "logSpiral",
+    "nSpiral",
+    "nSpirals",
+    "calla_petal",
+    "calla",
+]

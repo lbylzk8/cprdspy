@@ -69,6 +69,68 @@ def circle(
     return line[0] if line else None
 
 
+def circle_fill(
+    radius=1,
+    color="#0F0",
+    alpha=1,
+    fill_color=None,
+    fill_alpha=0.3,
+    edge_color=None,
+    edge_width=None,
+    edge_style=None,
+    center=(0, 0),
+    points=100,
+    linestyle="-",
+    linewidth=1,
+    label=None,
+    marker=None,
+    markersize=5,
+    markerfacecolor="r",
+    markeredgecolor="k",
+    markeredgewidth=1,
+    ax=None,
+    **kwargs,
+):
+    """绘制一个带填充的圆。
+
+    新增参数:
+        fill_color (str): 填充颜色，默认回退到 edge_color → color。
+        fill_alpha (float): 填充透明度，默认 0.3。
+        edge_color (str): 边缘线颜色，默认回退到 color。
+        edge_width (float): 边缘线宽度，默认回退到 linewidth。
+        edge_style (str): 边缘线样式，默认回退到 linestyle。
+    其余参数与 circle 相同。
+    """
+    angle = np.linspace(0, 2 * np.pi, points)
+    x = center[0] + radius * np.cos(angle)
+    y = center[1] + radius * np.sin(angle)
+
+    if ax is None:
+        ax = plt.gca()
+
+    fc = fill_color if fill_color is not None else (edge_color if edge_color is not None else color)
+    ec = edge_color if edge_color is not None else color
+    ew = edge_width if edge_width is not None else linewidth
+    es = edge_style if edge_style is not None else linestyle
+
+    # 填充
+    ax.fill(x, y, color=fc, alpha=fill_alpha, linewidth=0)
+
+    # 边缘线
+    ax.plot(
+        x, y,
+        color=ec, alpha=alpha, linestyle=es, linewidth=ew,
+        marker=marker, markersize=markersize,
+        markerfacecolor=markerfacecolor, markeredgecolor=markeredgecolor,
+        markeredgewidth=markeredgewidth, label=label,
+        **kwargs,
+    )
+
+    ax.axis("equal")
+    if label:
+        ax.legend()
+
+
 def draw_circle(
     radius=1,
     color="#0F0",
@@ -150,6 +212,59 @@ def ellipse(a=2, b=1, rotation=0, use_degree=True, color="#0f0", alpha=1, center
         + center[1]
     )
     plt.plot(x, y, color, alpha)
+
+
+def ellipse_fill(
+    a=2, b=1, rotation=0, use_degree=True,
+    color="#0f0", alpha=1,
+    fill_color=None, fill_alpha=0.3,
+    edge_color=None, edge_width=None, edge_style=None,
+    center=(0, 0), points=1000,
+    linestyle="-", linewidth=1, label=None,
+    ax=None,
+    **kwargs,
+):
+    """绘制一个带填充的椭圆。
+
+    新增参数:
+        fill_color (str): 填充颜色，默认回退到 edge_color → color。
+        fill_alpha (float): 填充透明度，默认 0.3。
+        edge_color (str): 边缘线颜色，默认回退到 color。
+        edge_width (float): 边缘线宽度，默认回退到 linewidth。
+        edge_style (str): 边缘线样式，默认回退到 linestyle。
+    其余参数与 ellipse 相同。
+    """
+    theta = np.linspace(0, 2 * np.pi, points)
+    angle_rad = np.deg2rad(rotation) if use_degree else rotation
+    x = (
+        a * np.cos(theta) * np.cos(angle_rad)
+        - b * np.sin(theta) * np.sin(angle_rad)
+        + center[0]
+    )
+    y = (
+        a * np.cos(theta) * np.sin(angle_rad)
+        + b * np.sin(theta) * np.cos(angle_rad)
+        + center[1]
+    )
+
+    if ax is None:
+        ax = plt.gca()
+
+    fc = fill_color if fill_color is not None else (edge_color if edge_color is not None else color)
+    ec = edge_color if edge_color is not None else color
+    ew = edge_width if edge_width is not None else linewidth
+    es = edge_style if edge_style is not None else linestyle
+
+    # 填充
+    ax.fill(x, y, color=fc, alpha=fill_alpha, linewidth=0)
+
+    # 边缘线
+    ax.plot(x, y, color=ec, alpha=alpha, linestyle=es, linewidth=ew,
+            label=label, **kwargs)
+
+    ax.axis("equal")
+    if label:
+        ax.legend()
 
 
 # 统一的同心圆函数
@@ -245,6 +360,105 @@ def concentric_circles(
             alpha=alpha,
             linestyle=linestyle,
             linewidth=linewidth,
+            **kwargs,
+        )
+
+    ax.axis("equal")
+
+
+def concentric_circles_fill(
+    center=(0, 0),
+    n=3,
+    radius=1,
+    param=0.5,
+    mode="arithmetic",
+    direction="both",
+    color="#0F0",
+    alpha=1,
+    fill_color=None,
+    fill_alpha=0.3,
+    edge_color=None,
+    edge_width=None,
+    edge_style=None,
+    marker="o",
+    points=200,
+    linestyle="-",
+    linewidth=1,
+    ax=None,
+    show_center=True,
+    **kwargs,
+):
+    """绘制带填充的同心圆。
+
+    新增参数:
+        fill_color, fill_alpha, edge_color, edge_width, edge_style
+        （同 circle_fill 的语义）。
+    其余参数与 concentric_circles 相同。
+
+    填充策略: 从最大圆到最小圆依次填充，最外层圆覆盖所有内层，
+    同时所有同心圆的边线叠加绘制在最上层。
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    if show_center:
+        ax.plot(center[0], center[1], marker=marker, color=color)
+
+    radii = []
+    mode = mode.lower()
+    direction = direction.lower()
+
+    if mode.startswith("a"):
+        d = float(param)
+        if direction == "both":
+            for i in range(1, n + 1):
+                radii.append(radius + i * d)
+                radii.append(radius - i * d)
+        elif direction == "out":
+            for i in range(1, n + 1):
+                radii.append(radius + i * d)
+        elif direction == "in":
+            for i in range(1, n + 1):
+                radii.append(radius - i * d)
+    elif mode.startswith("g"):
+        q = float(param)
+        if q == 0:
+            raise ValueError("ratio (param) must be non-zero for geometric mode")
+        if direction == "both":
+            for i in range(1, n + 1):
+                radii.append(radius * (q**i))
+                radii.append(radius / (q**i))
+        elif direction == "out":
+            for i in range(1, n + 1):
+                radii.append(radius * (q**i))
+        elif direction == "in":
+            for i in range(1, n + 1):
+                radii.append(radius / (q**i))
+
+    radii = [r for r in radii if r > 0]
+    radii.append(radius)
+    radii = sorted(set(radii))
+
+    fc = fill_color if fill_color is not None else (edge_color if edge_color is not None else color)
+    ec = edge_color if edge_color is not None else color
+    ew = edge_width if edge_width is not None else linewidth
+    es = edge_style if edge_style is not None else linestyle
+
+    # 从大到小填充，外层覆盖内层形成实心圆盘
+    for r in sorted(radii, reverse=True):
+        angle = np.linspace(0, 2 * np.pi, points)
+        x = center[0] + r * np.cos(angle)
+        y = center[1] + r * np.sin(angle)
+        ax.fill(x, y, color=fc, alpha=fill_alpha, linewidth=0)
+
+    # 所有同心圆边线绘制在最上层
+    for r in radii:
+        angle = np.linspace(0, 2 * np.pi, points)
+        x = center[0] + r * np.cos(angle)
+        y = center[1] + r * np.sin(angle)
+        ax.plot(
+            x, y,
+            color=ec, alpha=alpha, linestyle=es, linewidth=ew,
             **kwargs,
         )
 
@@ -357,3 +571,141 @@ def concentric_ellipse(
         )
 
     ax.axis("equal")
+
+
+def concentric_ellipse_fill(
+    center=(0, 0),
+    n=3,
+    a=2,
+    b=1,
+    param=0.5,
+    mode="arithmetic",
+    direction="both",
+    rotation=0,
+    color="#0F0",
+    alpha=1,
+    fill_color=None,
+    fill_alpha=0.3,
+    edge_color=None,
+    edge_width=None,
+    edge_style=None,
+    marker="o",
+    points=200,
+    linestyle="-",
+    linewidth=1,
+    ax=None,
+    show_center=True,
+    **kwargs,
+):
+    """绘制带填充的同心椭圆。
+
+    新增参数:
+        fill_color, fill_alpha, edge_color, edge_width, edge_style
+        （同 ellipse_fill 的语义）。
+    其余参数与 concentric_ellipse 相同。
+
+    填充策略: 从最大椭圆到最小椭圆依次填充，最外层覆盖所有内层，
+    同时所有同心椭圆的边线叠加绘制在最上层。
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    if show_center:
+        ax.plot(center[0], center[1], marker=marker, color=color)
+
+    ellipses = []
+    mode = mode.lower()
+    direction = direction.lower()
+
+    if mode.startswith("a"):
+        d = float(param)
+        if direction == "both":
+            for i in range(1, n + 1):
+                ellipses.append((a + i * d, b + i * d))
+                ellipses.append((a - i * d, b - i * d))
+        elif direction == "out":
+            for i in range(1, n + 1):
+                ellipses.append((a + i * d, b + i * d))
+        elif direction == "in":
+            for i in range(1, n + 1):
+                ellipses.append((a - i * d, b - i * d))
+    elif mode.startswith("g"):
+        q = float(param)
+        if q == 0:
+            raise ValueError("ratio (param) must be non-zero for geometric mode")
+        if direction == "both":
+            for i in range(1, n + 1):
+                ellipses.append((a * (q**i), b * (q**i)))
+                ellipses.append((a / (q**i), b / (q**i)))
+        elif direction == "out":
+            for i in range(1, n + 1):
+                ellipses.append((a * (q**i), b * (q**i)))
+        elif direction == "in":
+            for i in range(1, n + 1):
+                ellipses.append((a / (q**i), b / (q**i)))
+
+    ellipses.append((a, b))
+
+    uniq = {}
+    for aa, bb in ellipses:
+        if aa > 0 and bb > 0:
+            key = (round(float(aa), 12), round(float(bb), 12))
+            uniq[key] = (float(aa), float(bb))
+
+    sorted_ellipses = sorted(uniq.values(), key=lambda t: t[0] * t[1])
+
+    fc = fill_color if fill_color is not None else (edge_color if edge_color is not None else color)
+    ec = edge_color if edge_color is not None else color
+    ew = edge_width if edge_width is not None else linewidth
+    es = edge_style if edge_style is not None else linestyle
+
+    theta = np.linspace(0, 2 * np.pi, points)
+    angle_rad = np.deg2rad(rotation)
+
+    # 从大到小填充，外层覆盖内层形成实心椭圆盘
+    for aa, bb in sorted(sorted_ellipses, key=lambda t: t[0] * t[1], reverse=True):
+        x = (
+            aa * np.cos(theta) * np.cos(angle_rad)
+            - bb * np.sin(theta) * np.sin(angle_rad)
+            + center[0]
+        )
+        y = (
+            aa * np.cos(theta) * np.sin(angle_rad)
+            + bb * np.sin(theta) * np.cos(angle_rad)
+            + center[1]
+        )
+        ax.fill(x, y, color=fc, alpha=fill_alpha, linewidth=0)
+
+    # 所有同心椭圆边线绘制在最上层
+    for aa, bb in sorted_ellipses:
+        x = (
+            aa * np.cos(theta) * np.cos(angle_rad)
+            - bb * np.sin(theta) * np.sin(angle_rad)
+            + center[0]
+        )
+        y = (
+            aa * np.cos(theta) * np.sin(angle_rad)
+            + bb * np.sin(theta) * np.cos(angle_rad)
+            + center[1]
+        )
+        ax.plot(
+            x, y,
+            color=ec, alpha=alpha, linestyle=es, linewidth=ew,
+            **kwargs,
+        )
+
+    ax.axis("equal")
+
+
+__all__ = [
+    "circle",
+    "circle_fill",
+    "draw_circle",
+    "circle_p",
+    "ellipse",
+    "ellipse_fill",
+    "concentric_circles",
+    "concentric_circles_fill",
+    "concentric_ellipse",
+    "concentric_ellipse_fill",
+]
