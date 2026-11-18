@@ -28,10 +28,19 @@ _probe.py
 _probe2.py
 
 # 大型演示产物（>4MB 的 notebook / html 导出），只留在本地
-# 注意：cprdspy/CPR_plotly1/test.ipynb 已被 git 跟踪，需先 git rm --cached 才会真正忽略
+# cprdspy/CPR_plotly1/test.ipynb 已用 git rm --cached 取消跟踪，此处规则现已生效
 cprdspy/CPR_plotly1/test.ipynb
 cprdspy/CPR_plotly1/test_all.ipynb
 cprdspy/rotor/rotor_demo.ipynb
 cprdspy/rotor/rotor_3d_demo.html
 demo_3d_plotly.html
 examples/cprdspy_gallery.ipynb
+
+# web_flower 的可再生产物（assets/presets.json 要提交，ref/obj 是测试/对照用的大文件）
+cprdspy/CPR_3D/web_flower/assets/ref/
+cprdspy/CPR_3D/web_flower/assets/obj/
+
+# 调试草稿与本地工具日志，可由源码重新生成，不入库
+cprdspy/CPR_3D/_scratch/
+cprdspy/CPR_3D/web_flower/_scratch/
+.workbuddy/
