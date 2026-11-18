@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>cprdspy · web_flower —— 花瓣花朵参数化建模</title>
+  <style>
+    :root {
+      --bg: #0d1016;
+      --panel: #151a23;
+      --panel-2: #1b2130;
+      --line: #262f42;
+      --fg: #e6ecf7;
+      --dim: #93a0b8;
+      --accent: #ff8fc4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font: 13px/1.55 "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    header h1 {
+      font-size: 15px;
+      margin: 0;
+      letter-spacing: .3px;
+      font-weight: 600;
+    }
+
+    header h1 span {
+      color: var(--accent);
+    }
+
+    #presets {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* main 明确保底高度：body 是 grid，1fr 行在窗口高度异常时会塌成 0，画布就没了 */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 330px;
+      min-height: 320px;
+    }
+
+    #stage {
+      position: relative;
+      min-height: 0;
+    }
+
+    #stage canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    aside {
+      border-left: 1px solid var(--line);
+      background: var(--panel);
+      overflow-y: auto;
+      padding: 4px 12px 40px;
+      scrollbar-width: thin;
+    }
+
+    footer {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 14px;
+      border-top: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--dim);
+      font-size: 12px;
+    }
+
+    #derived {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    button,
+    select,
+    input[type="text"] {
+      font: inherit;
+      color: var(--fg);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 3px 9px;
+      cursor: pointer;
+    }
+
+    button:hover,
+    select:hover {
+      border-color: #3b4963;
+    }
+
+    .preset {
+      min-width: 40px;
+    }
+
+    .preset.on {
+      background: var(--accent);
+      color: #22101a;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .preset.alt {
+      border-style: dashed;
+      color: var(--dim);
+    }
+
+    .mini {
+      font-size: 12px;
+      padding: 2px 8px;
+      color: var(--dim);
+    }
+
+    section.grp {
+      padding: 10px 0 4px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    section.grp h3 {
+      margin: 0 0 2px;
+      font-size: 12px;
+      letter-spacing: .8px;
+      color: var(--accent);
+      text-transform: none;
+    }
+
+    .hint {
+      margin: 0 0 8px;
+      color: var(--dim);
+      font-size: 11.5px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto 58px;
+      gap: 8px;
+      align-items: center;
+      padding: 2px 0;
+    }
+
+    .row>label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #c3cde0;
+    }
+
+    .row>select,
+    .row>textarea {
+      grid-column: 2 / 4;
+      justify-self: end;
+      max-width: 190px;
+    }
+
+    .row input[type="checkbox"] {
+      grid-column: 2 / 4;
+      justify-self: end;
+      accent-color: var(--accent);
+    }
+
+    .row input[type="range"] {
+      grid-column: 2 / 4;
+      justify-self: end;
+      width: 190px;
+      accent-color: var(--accent);
+    }
+
+    .row .val {
+      grid-column: 3 / 4;
+      text-align: right;
+      color: var(--fg);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .row.locked {
+      opacity: .38;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0f131b;
+      color: #b9c6dd;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: 11px/1.4 ui-monospace, Consolas, monospace;
+      resize: vertical;
+    }
+
+    textarea.bad {
+      border-color: #ff6b6b;
+    }
+
+    #boot {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      background: rgba(13, 16, 22, .92);
+      z-index: 5;
+    }
+
+    #boot.hidden {
+      display: none;
+    }
+
+    #boot pre {
+      text-align: left;
+      background: #0f131b;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #9fb0cc;
+      max-width: 640px;
+      overflow: auto;
+    }
+
+    #keys {
+      color: var(--dim);
+    }
+
+    kbd {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0 5px;
+      font: inherit;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        overflow: auto;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60vh auto;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+
+<body>
+  <header>
+    <h1>cprdspy · <span>web_flower</span> —— 花瓣/花朵参数化建模</h1>
+    <nav id="presets" aria-label="预设"></nav>
+    <button id="share" class="mini" type="button">复制链接</button>
+  </header>
+
+  <main>
+    <div id="stage">
+      <div id="boot">正在加载 assets/presets.json …</div>
+    </div>
+    <aside id="panel" aria-label="参数面板"></aside>
+  </main>
+
+  <footer>
+    <span id="derived"></span>
+    <span id="stats">—</span>
+    <span id="keys"><kbd>R</kbd> 转 <kbd>G</kbd> 网格 <kbd>F</kbd> 取景 <kbd>1</kbd>–<kbd>9</kbd> 预设</span>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

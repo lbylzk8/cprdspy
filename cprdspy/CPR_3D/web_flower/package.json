@@ -1,0 +1,13 @@
+{
+  "name": "cprdspy-web-flower",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "参数化花瓣/花朵建模：Python 出规范与参考几何，浏览器用 three.js 实时实例化渲染。",
+  "scripts": {
+    "assets": "python build_assets.py --ref",
+    "serve": "python serve.py",
+    "test": "python run_tests.py"
+  },
+  "comment": "three.js 走 CDN importmap（见 index.html），不装 node_modules；测试只用 node 自带能力。"
+}
